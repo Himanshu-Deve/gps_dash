@@ -2132,8 +2132,13 @@
                     $('.totdalCount').removeClass("hidden")
                     $(".listing-counts").addClass("hidden")
                 }
-                data.forEach(item => {
-                    const row = $(`
+                const filterVal = $("#verifyStatusFilter").val()==""?"0":$("#verifyStatusFilter").val();
+                const filteredData = data.filter(item => item.status == filterVal);
+                console.log("Filtered Data:", filteredData);
+                $("#listing-count").text(filteredData.length);
+
+                filteredData.forEach(item => {
+                   const row = $(`
                         <tr>
                             <td>${item.bus_number}</td>
                             <td >
@@ -2209,8 +2214,9 @@
                             </td>
                         </tr>
                     `);
+                   
                     tbody.append(row);
-
+                    
                     // if (item.gps_id == null) {
                     //     $(`#show-${item.bus_number}`).prop('disabled', true).addClass('opacity-50 cursor-not-allowed');
                     // }
