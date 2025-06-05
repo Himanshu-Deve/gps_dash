@@ -1,0 +1,2781 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPS Installer Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+
+    <style>
+        /* Process steps styles */
+        .process-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .process-step {
+            display: flex;
+            gap: 12px;
+            position: relative;
+            padding-left: 30px;
+        }
+
+        .process-step:before {
+            content: '';
+            position: absolute;
+            left: 12px;
+            top: 24px;
+            bottom: -16px;
+            width: 2px;
+            background-color: #e2e8f0;
+        }
+
+        .process-step:last-child:before {
+            display: none;
+        }
+
+        .step-number {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background-color: #6b46c1;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .step-content {
+            flex: 1;
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 12px;
+            border-left: 3px solid #6b46c1;
+        }
+
+        .step-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #4f46e5;
+        }
+
+        .step-details {
+            font-size: 14px;
+            color: #4b5563;
+        }
+
+        .step-completed .step-number {
+            background-color: #10b981;
+        }
+
+        .step-completed .step-content {
+            border-left-color: #10b981;
+        }
+
+        .step-pending .step-number {
+            background-color: #f59e0b;
+        }
+
+        .step-pending .step-content {
+            border-left-color: #f59e0b;
+        }
+
+        .step-failed .step-number {
+            background-color: #ef4444;
+        }
+
+        .step-failed .step-content {
+            border-left-color: #ef4444;
+        }
+
+        /* Verification section */
+        .verification-section {
+            background-color: #f8fafc;
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 20px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .verification-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .verification-title {
+            font-weight: 600;
+            color: #4f46e5;
+        }
+
+        .verification-toggle {
+            display: flex;
+            align-items: center;
+        }
+
+        .toggle-label {
+            margin-right: 10px;
+            font-weight: 500;
+            color: #64748b;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 24px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked+.toggle-slider {
+            background-color: #10b981;
+        }
+
+        input:checked+.toggle-slider:before {
+            transform: translateX(26px);
+        }
+
+        .verification-status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            margin-left: 10px;
+        }
+
+        .status-verified {
+            background-color: #dcfce7;
+            color: #166534;
+        }
+
+        .status-pending {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+
+        .status-rejected {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+
+        /* Professional popup styles */
+        .popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .popup-card {
+            background: white;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 90%;
+            max-height: 95vh;
+            overflow-y: auto;
+            box-shadow: 0 5px 30px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+
+        .popup-header {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .popup-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .popup-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .popup-body {
+            padding: 20px;
+        }
+
+        .bus-card {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .card-section {
+            margin-bottom: 20px;
+        }
+
+        .card-section-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #6b46c1;
+            font-size: 1.1rem;
+        }
+
+        .card-row {
+            display: flex;
+            margin-bottom: 8px;
+        }
+
+        .card-label {
+            font-weight: 500;
+            min-width: 150px;
+            color: #555;
+        }
+
+        .card-value {
+            color: #333;
+        }
+
+        .refresh-btn {
+            background: #6b46c1;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin-left: auto;
+        }
+
+        .refresh-btn:hover {
+            background: #5a3cad;
+        }
+
+        .preview-btn {
+            background: #4a90e2;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            text-transform: capitalize;
+        }
+
+        .status-pending {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+
+        .status-in_progress {
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+
+        .status-completed {
+            background-color: #dcfce7;
+            color: #166534;
+        }
+
+        .search-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding: 10px;
+            border-radius: 12px;
+            background: #f9f9f9;
+        }
+
+        .search-input {
+            border: none;
+            border-radius: 8px;
+            padding: 12px;
+            width: 60%;
+            font-size: 16px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .search-btn {
+            color: #fff;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 2px 10px rgba(107, 70, 193, 0.3);
+        }
+
+        .search-btn:hover {
+            background: #4A90E2;
+        }
+
+        .modal {
+            z-index: 1000;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal.hidden {
+            display: none;
+            opacity: 0;
+        }
+
+        .modal:not(.hidden) {
+            display: flex;
+            opacity: 1;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .assign-popup {
+            min-width: 500px;
+            z-index: 1000;
+        }
+
+        .overlay {
+            z-index: 999;
+        }
+
+        .loader {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #3498db;
+            border-bottom: 5px solid #e74c3c;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            box-shadow: 0 0 10px rgba(52, 152, 219, 0.6);
+            z-index: 1000;
+            display: none;
+        }
+
+        /* Professional pagination styles */
+        .pagination-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .pagination {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .page-item {
+            min-width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            margin: 2px;
+        }
+
+        .page-item:hover:not(.active, .disabled) {
+            background-color: #e9ecef;
+        }
+
+        .page-item.active {
+            background-color: #6b46c1;
+            color: white;
+        }
+
+        .page-item.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .page-arrow {
+            padding: 0 15px;
+            font-weight: bold;
+            background-color: #f1f1f1;
+        }
+
+        .page-ellipsis {
+            padding: 0 10px;
+            pointer-events: none;
+        }
+
+        /* Professional table styles */
+        .data-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            background-color: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .data-table th {
+            background-color: #f8fafc;
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: 600;
+            color: #64748b;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .data-table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid #e2e8f0;
+            color: #334155;
+        }
+
+        .data-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .data-table tr:hover td {
+            background-color: #f8fafc;
+        }
+
+        /* Action buttons */
+        .action-btn {
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .btn-primary {
+            background-color: #4f46e5;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #4338ca;
+        }
+
+        .btn-secondary {
+            background-color: #e2e8f0;
+            color: #334155;
+        }
+
+        .btn-secondary:hover {
+            background-color: #cbd5e1;
+        }
+
+        .btn-success {
+            background-color: #10b981;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background-color: #0d9f6e;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: translate(-50%, -50%) rotate(0deg);
+            }
+
+            100% {
+                transform: translate(-50%, -50%) rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 p-6">
+    <div class="max-w-8xl mx-auto">
+        <div class="sticky top-0 bg-white"> 
+        <h1 class="text-2xl font-bold text-gray-800 mb-6 text-center">GPS Installation Dashboard</h1>
+
+        <!-- Filters and Controls -->
+        <div class="bg-white rounded-lg shadow-sm p-4 mb-6">
+            <div class="flex flex-wrap items-center justify-between gap-4">
+                <div class="flex items-center space-x-4">
+                    <div class="relative">
+                        <select id="statusFilter"
+                            class="bg-white border border-gray-300 rounded-lg px-4 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                            <option value="all">All</option>
+                            <option value="pending">Pending</option>
+                            <option value="in_progress">In Progress</option>
+                            <option value="completed">Completed</option>
+                        </select>
+                    </div>
+                    <div class="relative">
+                        <select id="verifyStatusFilter"
+                            class="bg-white border border-gray-300 rounded-lg px-4 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                            <option value="">Not Verified</option>
+                            <option value="2">Verified</option>   
+                        </select>
+                    </div>
+                    <div class="relative w-full max-w-xs">
+                        <input type="text" id="technician_input" class="bg-white border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 w-64" placeholder="Search technician..." autocomplete="off">
+                        <div id="technician_suggestions" class="absolute bg-white border border-gray-300 w-full z-10 hidden"></div>
+                    </div>
+                    <div class="relative">
+                        <input type="text" id="bus-number-filter"
+                            class="bg-white border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 w-64"
+                            placeholder="Search Bus Number">
+                    </div>
+
+                    <div class="relative">
+                        <input type="text" id="operator-name-filter"
+                            class="bg-white border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 w-64"
+                            placeholder="Search Operator">
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-3">
+                    <button id="userCreate"
+                        class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors">
+                        Create User
+                    </button>
+                    <button id="openEditModal"
+                        class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors">
+                        List Users
+                    </button>
+                    <div class="totalCount bg-gray-100 px-4 py-2 rounded-lg">
+                        <span class="text-gray-600">Total:</span>
+                        <span id="totalCount" class="font-semibold ml-1">0</span>
+                    </div>
+                    <div class="listing-counts hidden bg-gray-100 px-4 py-2 rounded-lg">
+                        <span class="text-gray-600">Verify Count:</span>
+                        <span id="listing-count" class="font-semibold ml-1">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+        <!-- Main Content -->
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+            <div class="dashboard" id="dataContainer"></div>
+            <div id="paginationControls" class="pagination-container">
+                <div class="pagination " id="pagination"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Create Modal -->
+    <div id="userModal" class="modal hidden fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center">
+        <div class="bg-white p-6 rounded-lg shadow-lg w-96">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold">Create New User</h2>
+                <button id="closeModal" class="text-gray-600 hover:text-gray-800">&times;</button>
+            </div>
+            <form id="userForm">
+                <div class="mb-4">
+                    <label for="userName" class="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                    <input type="text" id="userName" name="name"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        required>
+                </div>
+                <div class="mb-4">
+                    <label for="userEmail" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                    <input type="email" id="userEmail" name="email"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        required>
+                </div>
+                <div class="mb-4">
+                    <label for="userNumber" class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                    <input type="tel" id="userNumber" name="number"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        pattern="[0-9]{10}" required>
+                </div>
+                  <div class="mb-4">
+                    <label for="location" class="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                    <input type="text" id="location" name="name"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        required>
+                </div>
+                  <div class="mb-4">
+                    <label for="type" class="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                    <input type="text" id="type" name="type"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        required>
+                </div>
+                <div class="flex justify-end gap-2">
+                    <button type="button" id="cancelBtn"
+                        class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors">
+                        Cancel
+                    </button>
+                    <button type="submit" id="submitBtn"
+                        class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors">
+                        Create User
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Technician Modal -->
+    <div id="editTechniciansModal"
+        class="hidden fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white p-5 rounded-lg w-3/4 max-w-7xl max-h-[85vh] shadow-lg overflow-hidden relative">
+            <div class="flex justify-between items-center mb-4">
+                <div class="flex flex-wrap w-[70%] items-center">
+                    <h2 class="text-xl font-bold text-gray-800">Manage Technicians</h2>
+                    <div class="mx-4 flex items-center">
+                        <input type="text" id="technicianSearchInput" placeholder="Search by name..."
+                            class="w-full px-4 py-2 border border-gray-600 rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                    </div>
+                </div>
+                
+                <button class="editCloseModal text-gray-500 hover:text-gray-700 text-xl">&times;</button>
+            </div>
+            <div class="overflow-y-auto max-h-[65vh] border rounded">
+                <table id="techniciansTable" class="w-full border-collapse">
+                    <thead class="sticky top-0 bg-gray-100">
+                        <tr>
+                            <th class="p-3 text-left font-semibold text-gray-700">ID</th>
+                            <th class="p-3 text-left font-semibold text-gray-700">Name</th>
+                            <th class="p-3 text-left font-semibold text-gray-700">Number</th>
+                            <th class="p-3 text-left font-semibold text-gray-700">Email</th>
+                            <th class="p-3 text-left font-semibold text-gray-700">Location</th>
+                            <th class="p-3 text-left font-semibold text-gray-700">Type</th>
+                            <th class="p-3 text-left font-semibold text-gray-700">Status</th>
+                            <th class="p-3 text-left font-semibold text-gray-700">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div class="mt-4 flex justify-end">
+                <button
+                    class="editCloseModal bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md transition-colors">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bus Details Popup -->
+    <div id="busPopup" class="popup-overlay hidden">
+        <div class="popup-card">
+            <div class="popup-header">
+                <div class="popup-title">Bus Installation Details</div>
+                <div>
+                  
+                    <button class="popup-close" id="closePopup">&times;</button>
+                </div>
+            </div>
+            <div class="popup-body" id="popupContent">
+                <!-- Bus details will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Preview Popup -->
+    <div id="previewPopup" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+        <div class="relative bg-white rounded-lg max-w-4xl max-h-[90vh] p-4">
+            <button class="absolute top-2 right-2 text-white bg-gray-800 rounded-full p-1 hover:bg-gray-700">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+            <div id="popupContent" class="max-w-full max-h-[80vh] overflow-auto"></div>
+        </div>
+    </div>
+
+    <!-- Loading Indicator -->
+    <div id="circular-loader" class="loader" style="display: none;"></div>
+
+    <!-- CSRF Token -->
+    <div id="csrf_token" class="hidden">{{csrf_token}}</div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
+    <script>
+        // ==================== CONSTANTS & CONFIGURATION ====================
+        const config = {
+            // baseUrl: "http://127.0.0.1:8000/eta",
+          baseUrl: "https://prediction.apnibus.com/eta",
+            endpoints: {
+                busForm: "/gps-device-installation/",
+                busList: "/bus-listing/",
+                installation: "/traker-installation/",
+                gpsHistory: "/gps-history/tracker_installation/",
+                userApi: "/gps-user/",
+                operatorCall: "/operator-call-logs/",
+                uploadCSV: "https://staging-testing.apnibus.com/prediction/eta/upload-file/"
+            },
+            pagination: {
+                itemsPerPage: 10,
+                historyRecordsPerPage: 3
+            }
+        };
+
+        // ==================== STATE MANAGEMENT ====================
+        const state = {
+            currentPage: 1,
+            isLoading: false,
+            hasMoreData: true,
+            allTechnicians: [],
+            allBusData: [],
+            historyRecords: {},
+            historyCurrentPage: {},
+            activeIntervals: {}
+        };
+
+        // ==================== DOM ELEMENTS ====================
+        const elements = {
+            dataContainer: $("#dataContainer"),
+            loader: $("#circular-loader"),
+            totalCount: $("#totalCount"),
+            statusFilter: $("#statusFilter"),
+            verifyStatusFilter: $("#verifyStatusFilter"),
+            busNumberFilter: $("#bus-number-filter"),
+            operatorNameFilter: $("#operator-name-filter"),
+            userModal: $("#userModal"),
+            userForm: $("#userForm"),
+            editTechniciansModal: $("#editTechniciansModal"),
+            previewPopup: $("#previewPopup"),
+            popupContent: $("#popupContent"),
+            csrfToken: $("#csrf_token").html()
+        };
+
+        // ==================== UTILITY FUNCTIONS ====================
+        const utils = {
+            showLoader: () => elements.loader.show(),
+            hideLoader: () => elements.loader.hide(),
+            showError: (message) => Swal.fire({ icon: 'error', title: 'Error', text: message }),
+            showSuccess: (message) => Swal.fire({ icon: 'success', title: 'Success', text: message }),
+            debounce: (func, delay) => {
+                let timer;
+                return function () {
+                    const context = this;
+                    const args = arguments;
+                    clearTimeout(timer);
+                    timer = setTimeout(() => func.apply(context, args), delay);
+                };
+            },
+            formatDate: (dateString) => {
+                if (!dateString) return 'N/A';
+                const date = new Date(dateString);
+                return date.toLocaleString();
+            },
+            getStatusBadge: (status) => {
+                const statusMap = {
+                    'pending': { class: 'status-pending', text: 'Pending' },
+                    'in_progress': { class: 'status-in_progress', text: 'In Progress' },
+                    'completed': { class: 'status-completed', text: 'Completed' },
+                    'verified': { class: 'status-in_progress', text: 'Verified' }, 
+                };
+
+                const statusInfo = statusMap[status] || { class: 'bg-gray-100 text-md text-gray-800', text: status };
+                return `<span class="status-badge ${statusInfo.class}">${statusInfo.text}</span>`;
+            }
+        };
+
+        // ==================== POPUP SERVICE ====================
+        const popupService = {
+            currentBus: null,
+
+            showBusDetails: function (busData) {
+                this.currentBus = busData;
+                this.renderBusDetails(busData);
+                busDataService.fetchInstallationData(busData.gps_id, busData.bus_number)
+                busDataService.fetchBusFormData(busData.bus_number, busData.gps_id);
+
+                $('#busPopup').removeClass('hidden');
+            },
+
+            renderBusDetails: function (bus) {
+                // Determine step completion status
+                const deviceStepStatus = bus.device_number ? 'completed' : 'pending';
+                const simStepStatus = bus.sim_number ? 'completed' : 'pending';
+                const ignitionOnStatus = bus.ignition === "1" ? 'completed' : 'pending';
+                const ignitionOffStatus = bus.ignition === "0" ? 'completed' : 'pending';
+                const installationStatus = bus.device_installation_img ? 'completed' : 'pending';
+
+                let html = `
+        <div class="flex justify-end">  <button class="refresh-btn" id="refreshBusData">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                            viewBox="0 0 16 16">
+                            <path fill-rule="evenodd"
+                                d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z" />
+                            <path
+                                d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z" />
+                        </svg>
+                        Refresh
+                    </button></div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+            <!-- Left Column - Bus Information -->
+            <div class="col-span-1">
+                <div class="bg-white p-4 rounded-lg shadow-sm mb-6">
+                    <h3 class="card-section-title">Bus Information</h3>
+                    <div class="space-y-3">
+                        <div class="card-row">
+                            <div class="card-label">Bus Number:</div>
+                            <div class="card-value font-semibold">${bus.bus_number || 'N/A'}</div>
+                        </div>
+                        <div class="card-row">
+                            <div class="card-label">Operator:</div>
+                            <div class="card-value">${bus.operator_name || 'N/A'}</div>
+                        </div>
+                        <div class="card-row">
+                            <div class="card-label">Contact:</div>
+                            <div class="card-value">${bus.operator_number || 'N/A'}</div>
+                        </div>
+                        <div class="card-row">
+                            <div class="card-label">Status:</div>
+                            <div class="card-value">${utils.getStatusBadge(bus.bus_status)}</div>
+                        </div>
+                        <div class="card-row">
+                            <div class="card-label">Assigned To:</div>
+                            <div class="card-value">${bus.user_number || 'Not Assigned'}</div>
+                        </div>
+                        ${bus.operator_address ? `
+                        <div class="card-row">
+                            <div class="card-label">Address:</div>
+                            <div class="card-value">${bus.operator_address}</div>
+                        </div>
+                        ` : ''}
+                    </div>
+                </div>
+                
+                <div class="bg-white p-4 rounded-lg shadow-sm">
+                    <h3 class="card-section-title">Bus Images</h3>
+                    <div class="flex flex-wrap gap-2">
+                       
+                        <button id="gallery-img-${bus.bus_number}-preview" class="preview-btn hidden" >
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                            Gallery
+                        </button>
+                        
+                        <button id="front-img-${bus.bus_number}-preview" class="preview-btn hidden" >
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                            Front Image
+                        </button>
+                        
+                        
+                        <button id="back-img-${bus.bus_number}-preview" class="preview-btn hidden" >
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                            Back Image
+                        </button>
+                        
+                        <button id="side-img-${bus.bus_number}-preview" class="preview-btn hidden" >
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                            Side Image
+                        </button>
+                        
+                        <button id="bus-video-${bus.bus_number}-preview" class="preview-btn hidden">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                            Video
+                        </button>
+                        
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Middle Column - Installation Process -->
+            <div class="col-span-2">
+                <div class="bg-white p-4 rounded-lg shadow-sm h-full">
+                    <h3 class="card-section-title">Installation Process</h3>
+                    <div class="process-steps mt-4">
+                        <!-- Step 1: SIM Information -->
+                        <div class="process-step sim-stepper-${bus.bus_number}">
+                            <div class="step-number">1</div>
+                            <div class="step-content">
+                                <div class="step-title">SIM Information</div>
+                                <div class="step-details">
+                                    <div id="sim-details-${bus.bus_number}" class="hidden">
+                                    <p><strong>SIM Number:</strong><span id="sim-number-${bus.bus_number}">${bus.sim_number}</span></p>
+                                    <p><strong>Method:</strong><span id="sim-method-${bus.bus_number}"> ${bus.mannul_sim ? 'Manual Entry' : 'Scanned'} </span></p>
+                                     </div>
+                                    <p id="sim-not-register-${bus.bus_number}">SIM not registered yet</p>
+                                </div>
+                               
+                                <button id="sim-image-${bus.bus_number}-preview" class="preview-btn hidden">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                    View SIM Image
+                                </button>
+                                
+                            </div>
+                        </div>
+                      
+                        <!-- Step 2: Device Information -->
+                        <div class="process-step device-stepper-${bus.bus_number}">
+                            <div class="step-number">2</div>
+                            <div class="step-content">
+                                <div class="step-title">Device Information</div>
+                                <div class="step-details">
+                                   <div id="device-details-${bus.bus_number}" class="hidden">
+                                    <p><strong>Device Number:</strong><span id="device-number-${bus.bus_number}"> ${bus.device_number}</span></p>
+                                    <p><strong>Method:</strong><span id="device-method-${bus.bus_number}"> ${bus.mannul_gps ? 'Manual Entry' : 'Scanned'}</span></p>
+                                    </div>
+                                    <p id="device-not-register-${bus.bus_number}">Device not registered yet</p>
+                                </div>
+                                <button id="device-image-${bus.bus_number}-preview" class="preview-btn hidden">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                    View Device Image
+                                </button>
+                               
+                            </div>
+                        </div>
+                        
+                        
+                        <!-- Step 3: Ignition On Check -->
+                        <div class="process-step ignition-on-stepper-${bus.bus_number}">
+                            <div class="step-number">3</div>
+                            <div class="step-content">
+                                <div class="step-title">Ignition On Check</div>
+                                <div class="step-details">
+                                    <p id="ignition-on-${bus.bus_number}">Ignition Not detected as ON</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Step 4: Ignition Off Check -->
+                        <div class="process-step ignition-off-stepper-${bus.bus_number}">
+                            <div class="step-number">4</div>
+                            <div class="step-content">
+                                <div class="step-title">Ignition Off Check</div>
+                                <div class="step-details">
+                                    <p id="ignition-off-${bus.bus_number}">Ignition Not detected as OFF</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Step 5: Installation Complete -->
+                        <div class="process-step device-img-${bus.bus_number}">
+                            <div class="step-number">5</div>
+                            <div class="step-content">
+                                <div class="step-title">Installation Complete</div>
+                                <div class="step-details-${bus.bus_number} hidden">
+                                    <p>Installation completed successfully</p>
+                                    <p><strong>Provider:</strong><span id="provider-${bus.bus_number}"> ${bus.provider || 'N/A'}</span></p>
+                               </div>
+                               <button id="gps-img-${bus.bus_number}-preview" class="preview-btn hidden">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                    View Installation Image
+                                </button>
+                                 <button id="earthing-img-${bus.bus_number}-preview" class="preview-btn hidden">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                    View Earthing Image
+                                </button>
+                                 <button id="ignition-img-${bus.bus_number}-preview" class="preview-btn hidden">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                    View Power/Ignition Image
+                                </button>
+                               <p class="step-details-not-done-${bus.bus_number}">Not Done yet</p>
+                              </div>
+                        </div>
+                        <div class="process-step bus-details-${bus.bus_number}">
+                            <div class="step-number">6</div>
+                            <div class="step-content">
+                                <div class="step-title">Bus QC Complete</div>
+                                <div class="step-bus-details-${bus.bus_number} hidden">
+                                    <p><strong>Bus Type:</strong><span id="bustype-${bus.bus_number}" class="text-gray-700"></span></p>
+                                    <p><strong>Cabin :</strong> <span id="cabin-${bus.bus_number}" class="text-gray-700"></span></p>
+                                    <p><strong>Total Number of Seats:</strong><span id="totalseats-${bus.bus_number}">'N/A'</span></p>
+                                    <p><strong>Double Decker:</strong><span id="doubledecker-${bus.bus_number}">'N/A'</span></p>
+                                    <p><strong>Seat Layout :</strong><span id="layout-${bus.bus_number}"> ${bus.provider || 'N/A'}</span></p>
+                                    <p><strong>Total Single Sleeper Lower:</strong><span id="singleLower-${bus.bus_number}" class="text-gray-700"></span></p>
+                                    <p><strong>Total Single Sleeper Upper:</strong><span id="singleUpper-${bus.bus_number}" class="text-gray-700"></span></p>
+                                    <p><strong>Total Sharing Sleeper Lower:</strong><span id="tssl-${bus.bus_number}" class="text-gray-700"></span></p>
+                                    <p><strong>Total Sharing Sleeper Upper:</strong> <span id="tssu-${bus.bus_number}" class="text-gray-700"></span></p>
+                               </div>
+                              
+                               <p class="step-bus-details-not-done-${bus.bus_number}">Not Done yet</p>
+                              </div>
+                        </div>
+                    </div>
+                    
+                   <div class="flex items-center space-x-4 my-5">
+                              <label class="flex items-center space-x-2">
+                                    <input type="checkbox" id="onbypass-${bus.bus_number}" class="w-5 h-5 rounded border-gray-300 text-purple-600 focus:ring-purple-500">
+                                    <span>Ignition On Bypass</span>
+                              </label>
+                              <label class="flex items-center space-x-2">
+                                       <input type="checkbox" id="offbypass-${bus.bus_number}" class="w-5 h-5 rounded border-gray-300 text-purple-600 focus:ring-purple-500">
+                                      <span>Ignition Off Bypass</span>
+                                 </label>
+                    </div>
+                    <div class="hidden" id="repairing-${bus.bus_number}">
+                    <div class="flex items-center space-x-4 my-5">
+                        <label class="text-purple-800 font-semibold text-[18px] mr-5 flex w-[25%] items-center justify-center ">
+                                    <span>Repairing Remarks</span>
+                        </label>
+                      <p id="repairing-remarks-${bus.bus_number}" class="w-full px-3 py-2 border border-gray"></p>
+                    </div>
+                    </div>
+                    <!-- Verification Section -->
+                    <div class="verification-section-${bus.bus_number} mt-6">
+                        <div class="verification-header">
+                            <div class="verification-title">Verification</div>
+                            <div class="verification-toggle">
+                                <span class="toggle-label">Mark as Verified:</span>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" ${bus.bus_status === "2" ? "checked" : ""}>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                                <span class="verification-status-${bus.bus_number} ${bus.bus_status === "2" ? "status-verified" : bus.bus_status === "1" ? "status-rejected" : "status-pending"}">
+                                    ${bus.bus_status === "2" ? "Verified" : bus.bus_status === "1" ? "Rejected" : "Pending"}
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <label for="popup-remarks-${bus.bus_number}" class="block text-sm font-medium text-gray-700 mb-1">Remarks</label>
+                            <textarea 
+                                id="remarks-${bus.bus_number}" 
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500" 
+                                rows="3" 
+                                placeholder="Enter any remarks about the installation...">${bus.remark || ''}</textarea>
+                        </div>
+
+                        <div class="flex justify-end mt-4 space-x-3">
+                            <button 
+                                class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
+                                onclick="busDataService.saveRemarks('${bus.gps_id}', '${bus.bus_number}')"
+                            >
+                                Save Remarks
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-6">
+            <h3 class="text-lg font-semibold mb-3">Installation History</h3>
+            <div id="historyContainer" class="space-y-3"></div>
+        </div>
+    `;
+
+                $('#popupContent').html(html);
+ 
+                // Attach event handlers for verification controls
+                $(`.verification-section-${bus.bus_number} input[type="checkbox"]`).on('change', function () {
+                    const status = $(this).is(':checked') ? '2' : '0';
+                    $(`.verification-status-${bus.bus_number}`)
+                        .removeClass('status-verified status-pending status-rejected')
+                        .addClass(status === '2' ? 'status-verified' : 'status-pending')
+                        .text(status === '2' ? 'Verified' : 'Pending');
+                        apiService.patch(config.endpoints.busForm, bus.gps_id, { 
+                        // status: status === 'Verified' ? '2' : '0',
+                        
+                        status: status,
+                    },'/');
+                });
+
+                $('.verification-section button:contains("Reject")').on('click', function () {
+                    $('.verification-status')
+                        .removeClass('status-verified status-pending status-rejected')
+                        .addClass('status-rejected')
+                        .text('Rejected');
+                    $('.verification-section input[type="checkbox"]').prop('checked', false);
+                });
+
+                $('.verification-section button:contains("Save Verification")').on('click', function () {
+                    const status = $('.verification-status').text().toLowerCase();
+                    const remarks = $('#popup-remarks').val();
+
+                    // Here you would typically make an API call to save the verification status
+                    console.log(`Saving verification: ${status}, Remarks: ${remarks}`);
+                  
+
+                    utils.showSuccess('Verification status saved successfully!');
+                });
+
+                // Load history if available
+                if (bus.tracker_id) {
+                    busDataService.fetchInstallationHistory(bus.bus_number, bus.tracker_id, true);
+                }
+            },
+            showImage: function (imageUrl) {
+                $('#popupContent').html(`
+                    <div class="text-center">
+                          <div class="mt-4">
+                            <button class="refresh-btn" id="refreshBusData">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                                </svg>
+                                Back to Details
+                            </button>
+                        </div>
+                        <img src="${imageUrl}" class="max-w-full max-h-[70vh] mx-auto rounded-lg shadow-md">
+                      
+                    </div>
+                `);
+               
+            },
+            showVideo: function (videoUrl) {
+                $('#popupContent').html(`
+                    <div class="text-center">
+                        <div class="mt-4">
+                            <button class="refresh-btn" id="refreshBusData">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                                </svg>
+                                Back to Details
+                            </button>
+                        </div>
+                        <video src="${videoUrl}" controls class="max-w-full max-h-[70vh] mx-auto rounded-lg shadow-md"></video>
+                        
+                    </div>
+                `);
+            },
+
+            refreshBusData: function () {
+                if (!this.currentBus || !this.currentBus.bus_number) return;
+
+                $('#popupContent').html('<div class="text-center py-8">Loading updated data...</div>');
+
+                $.ajax({
+                    url: `${config.baseUrl}${config.endpoints.busList}?bus_number=${this.currentBus.bus_number}`,
+                    success: (response) => {
+                        const updatedBus = response.results?.[0] || response.data?.[0];
+                        if (updatedBus) {
+                            this.currentBus = updatedBus;
+                            this.renderBusDetails(updatedBus);
+                            busDataService.fetchInstallationData(updatedBus.gps_id, updatedBus.bus_number)
+                            busDataService.fetchBusFormData(updatedBus.bus_number, updatedBus.gps_id);
+                        } else {
+                            $('#popupContent').html('<div class="text-center py-8 text-gray-500">No updated data found</div>');
+                        }
+                    },
+                    error: () => {
+                        $('#popupContent').html('<div class="text-center py-8 text-red-500">Error loading updated data</div>');
+                    }
+                });
+            }
+        };
+
+        // ==================== PAGINATION SERVICE ====================
+        const paginationService = {
+            currentPage: 1,
+            totalPages: 1,
+            visiblePages: 5,
+
+            renderPagination: function () {
+                const pagination = $('#pagination');
+                pagination.empty();
+
+                // Previous button
+                pagination.append(`
+                    <div class="page-item page-arrow ${this.currentPage === 1 ? 'disabled' : ''}" 
+                         id="prevPage" onclick="paginationService.handlePageChange(${this.currentPage - 1})">
+                        &laquo; Prev
+                    </div>
+                `);
+
+                // Always show first page
+                if (this.totalPages > 0) {
+                    pagination.append(`
+                        <div class="page-item ${this.currentPage === 1 ? 'active' : ''}" 
+                             onclick="paginationService.handlePageChange(1)">
+                            1
+                        </div>
+                    `);
+                }
+
+                // Show ellipsis if needed before middle pages
+                if (this.currentPage > this.visiblePages) {
+                    pagination.append('<div class="page-item page-ellipsis">...</div>');
+                }
+
+                // Calculate start and end of visible pages
+                let startPage = Math.max(2, this.currentPage - Math.floor(this.visiblePages / 2));
+                let endPage = Math.min(this.totalPages - 1, startPage + this.visiblePages - 1);
+
+                // Adjust if we're at the end
+                if (endPage - startPage < this.visiblePages - 1) {
+                    startPage = Math.max(2, endPage - this.visiblePages + 1);
+                }
+
+                // Page numbers
+                for (let i = startPage; i <= endPage; i++) {
+                    pagination.append(`
+                        <div class="page-item ${this.currentPage === i ? 'active' : ''}" 
+                             onclick="paginationService.handlePageChange(${i})">
+                            ${i}
+                        </div>
+                    `);
+                }
+
+                // Show ellipsis if needed after middle pages
+                if (endPage < this.totalPages - 1) {
+                    pagination.append('<div class="page-item page-ellipsis">...</div>');
+                }
+
+                // Always show last page if there are multiple pages
+                if (this.totalPages > 1) {
+                    pagination.append(`
+                        <div class="page-item ${this.currentPage === this.totalPages ? 'active' : ''}" 
+                             onclick="paginationService.handlePageChange(${this.totalPages})">
+                            ${this.totalPages}
+                        </div>
+                    `);
+                }
+
+                // Next button
+                pagination.append(`
+                    <div class="page-item page-arrow ${this.currentPage === this.totalPages ? 'disabled' : ''}" 
+                         id="nextPage" onclick="paginationService.handlePageChange(${this.currentPage + 1})">
+                        Next &raquo;
+                    </div>
+                `);
+            },
+
+            handlePageChange: function (page) {
+                if (page < 1 || page > this.totalPages || page === this.currentPage) return;
+
+                this.currentPage = page;
+                busDataService.fetchPaginatedData(page);
+                this.renderPagination();
+            },
+
+            updatePagination: function (response) {
+                this.totalPages = response.total_pages || 1;
+                this.renderPagination();
+            }
+        };
+
+        // ==================== API SERVICE ====================
+        const apiService = {
+            get: (url, params = {}) => {
+                return $.ajax({
+                    url: config.baseUrl + url,
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRFToken': elements.csrfToken
+                    },
+                    data: params
+                });
+            },
+
+            post: (url, data) => {
+                return $.ajax({
+                    url: config.baseUrl + url,
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': elements.csrfToken
+                    },
+                    data: JSON.stringify(data)
+                });
+            },
+
+            patch: (url, id,data,slash='') => {
+                return $.ajax({
+                    url: config.baseUrl + url + id + slash ,
+                    method: 'PATCH',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRFToken': elements.csrfToken
+                    },
+                    data: data
+                });
+            },
+
+            uploadFile: (file) => {
+                const formData = new FormData();
+                formData.append('file', file);
+
+                return $.ajax({
+                    url: config.endpoints.uploadCSV,
+                    type: 'POST',
+                    data: formData,
+                    headers: {
+                        'X-CSRFToken': elements.csrfToken
+                    },
+                    processData: false,
+                    contentType: false
+                });
+            }
+        };
+
+        // ==================== BUS DATA SERVICE ====================
+        const busDataService = {
+            fetchBusData: async (busNumber = '', operatorName = '' ,status = '', verifyStatus='' ,technician,page = 1) => {
+                try {
+                    const response = await apiService.get(config.endpoints.busList, {
+                        bus_number: busNumber,
+                        operator_name: operatorName,
+                        page: page,
+                        status: (busNumber=='' && operatorName=='')? status :'',
+                        verify_status: verifyStatus,
+                        technician:technician
+                    });
+                    state.allBusData = response.results; // Store the fetched data
+                    elements.totalCount.text(response.count); // Update total count
+                    paginationService.updatePagination(response); // Update pagination
+                    ui.renderPaginatedData(state.allBusData); // Render the data
+                } catch (error) {
+                    console.error('Failed to fetch bus data:', error);
+                }
+            },
+
+            fetchBusFormData: async (bus_number, gps_id) => {
+                try {
+                    const data = await apiService.get(config.endpoints.busForm, { gps_id: gps_id });
+                    // if ($(`#details-${bus_number}`).children().length === 0 && $(`#details-${bus_number}`).text().trim() === '') {
+                    //     ui.renderDropdown(data.data, bus_number);
+                    //     console.log(data.data)
+                    // } else {
+
+                    busDataService.processBusFormData(data.data, bus_number);
+                    // }
+                } catch (error) {
+                    console.error("Error fetching bus form data:", error);
+                }
+            },
+
+            fetchPaginatedData: async function (page) {
+                if (state.isLoading) return;
+                state.isLoading = true;
+                utils.showLoader();
+
+                const busNumber = elements.busNumberFilter.val().trim();
+                const operatorName = elements.operatorNameFilter.val().trim();
+
+                try {
+                    const response = await apiService.get(config.endpoints.busList, {
+                        page: page,
+                        bus_number: busNumber,
+                        operator_name: operatorName
+                    });
+                    state.allBusData = response.results;
+                    elements.totalCount.text(response.count);
+                    paginationService.currentPage = page;
+                    paginationService.updatePagination(response);
+                    ui.renderPaginatedData(state.allBusData);
+                } catch (err) {
+                    console.error("Error fetching data:", err);
+                } finally {
+                    state.isLoading = false;
+                    utils.hideLoader();
+                }
+            },
+
+            processBusFormData: (data, bus_number) => {
+                data.forEach((item) => {
+                    if (item.bus_number === bus_number) {
+                        // busDataService.fetchInstallationData(item.gps_id, item.bus_number);
+                        const section = $(`.verification-section-${bus_number}`);
+                        const checkbox = section.find('input[type="checkbox"]');
+                        const statusLabel = section.find(`.verification-status-${bus_number}`);
+                        console.log(item);
+                         if(item.repairing_remark!=null){
+                        $(`#repairing-${bus_number}`).removeClass('hidden');
+                        $(`#repairing-remarks-${bus_number}`).text(item.repairing_remark);
+                       }
+
+                        const status = item.status;
+                        statusLabel.removeClass('status-verified status-pending status-rejected')
+                        .addClass(status === '2' ? 'status-verified' : 'status-pending')
+                        .text(status === '2' ? 'Verified' : 'Pending');
+                        checkbox.prop('checked', status == '2');
+                        
+                        // console.log( item.by_pass_ignition_off);
+                        $(`#offbypass-${bus_number}`).prop("checked", item.by_pass_ignition_off);
+                        $(`#onbypass-${bus_number}`).prop("checked", item.by_pass_ignition_on);
+                        
+                        $(document).on('change', `#onbypass-${bus_number}`, function () {
+                        const bypassOn = $(this).is(':checked');
+                        console.log(bypassOn);
+                       
+                        
+                        apiService.patch(config.endpoints.busForm, item.gps_id, { by_pass_ignition_on: bypassOn },"/");
+                    });
+
+                    $(document).on('change', `#offbypass-${bus_number}`, function () {
+                        const bypassOff = $(this).is(':checked');
+                        apiService.patch(config.endpoints.busForm, item.gps_id, { by_pass_ignition_off: bypassOff },"/");
+                    });
+                       
+                        if (item.bus_quality_details[0]) {
+                            console.log("data " + item.bus_quality_details[0]);
+
+                            busDataService.populateBusDetails(item.bus_quality_details[0], bus_number);
+                        }
+                    }
+                });
+            },
+
+            populateBusDetails: (item, bus_number) => {
+                const details = item;
+                $(`.bus-details-${bus_number}`).addClass('step-completed')
+                $(`.step-bus-details-${bus_number}`).removeClass('hidden');
+                $(`.step-bus-details-not-done-${bus_number}`).addClass('hidden');
+                $(`#bustype-${bus_number}`).text(`${details.bus_type}`);
+                $(`#cabin-${bus_number}`).text(` ${details.cabin ? "Yes" : "No"}`);
+
+                $(`#bus-front-image-${bus_number}-preview`).attr("image-data", details.bus_front_img).removeClass('hidden');
+                $(`#bus-back-image-${bus_number}-preview`).attr("image-data", details.bus_back_img).removeClass('hidden');
+                $(`#gallery-img-${bus_number}-preview`).attr('front-image-data',details.bus_front_img).attr('back-image-data',details.bus_back_img)
+                .attr('side-image-data',details.gps_img).attr('bus-video-data',details.bus_video);
+                $(`#singleLower-${bus_number}`).text(`${details.total_single_sleeper_lower}`);
+                $(`#singleUpper-${bus_number}`).text(`${details.total_single_sleeper_upper}`);
+                $(`#tssl-${bus_number}`).text(`${details.total_sharing_sleeper_lower}`);
+                $(`#tssu-${bus_number}`).text(`${details.total_sharing_sleeper_upper}`);
+                $(`#layout-${bus_number}`).text(`${details.seat_layout}`);
+                $(`#totalseats-${bus_number}`).text(`${details.total_no_of_seats}`);
+                $(`#doubledecker-${bus_number}`).text(`${details.double_decker ? "Yes" : "No"}`);
+                if (details.bus_front_img) {
+                    const previewElement = $(`#front-img-${bus_number}-preview`);
+
+                    previewElement
+                        .removeClass("hidden")
+                        .data('img-url', details.bus_front_img)
+                        .off('click') // Remove previous handler if any
+                        .on('click', function () {
+                            const imgUrl = $(this).data('img-url');
+                            console.log(imgUrl);
+                            popupService.showImage(imgUrl);
+                        });
+                }
+                if (details.bus_back_img) {
+                    const previewElement = $(`#back-img-${bus_number}-preview`);
+
+                    previewElement
+                        .removeClass("hidden")
+                        .data('img-url', details.bus_back_img)
+                        .off('click') // Remove previous handler if any
+                        .on('click', function () {
+                            const imgUrl = $(this).data('img-url');
+                            console.log(imgUrl);
+                            popupService.showImage(imgUrl);
+                        });
+                }
+                if (details.gps_img) {
+                    const previewElement = $(`#side-img-${bus_number}-preview`);
+
+                    previewElement
+                        .removeClass("hidden")
+                        .data('img-url', details.gps_img)
+                        .off('click') // Remove previous handler if any
+                        .on('click', function () {
+                            const imgUrl = $(this).data('img-url');
+                            console.log(imgUrl);
+                            popupService.showImage(imgUrl);
+                        });
+                }
+                if (details.bus_video) {
+                    const previewElement = $(`#bus-video-${bus_number}-preview`);
+
+                    previewElement
+                        .removeClass("hidden")
+                        .data('img-url', details.bus_video)
+                        .off('click') // Remove previous handler if any
+                        .on('click', function () {
+                            const imgUrl = $(this).data('img-url');
+                            console.log(imgUrl);
+                            popupService.showVideo(imgUrl);
+                        });
+                
+                    }
+
+                if (details.bus_first_img || details.bus_back_img || details.gps_img || details.bus_video) {
+
+                    const previewElement = $(`#gallery-img-${bus_number}-preview`);
+
+                    previewElement
+                    .removeClass('hidden')
+                        .off('click')
+                        .on('click', function () {
+                   let frontImg = $(`#gallery-img-${bus_number}-preview`).attr("front-image-data");
+                    let backImg = $(`#gallery-img-${bus_number}-preview`).attr("back-image-data");
+                    let video = $(`#gallery-img-${bus_number}-preview`).attr("bus-video-data");
+                    let sideImg = $(`#gallery-img-${bus_number}-preview`).attr("side-image-data");
+
+                    const galleryItems = [];
+                    if (frontImg) galleryItems.push({ type: 'image', url: frontImg });
+                    if (backImg) galleryItems.push({ type: 'image', url: backImg });
+                    if (sideImg) galleryItems.push({ type: 'image', url: sideImg });
+                    if (video) galleryItems.push({ type: 'video', url: video });
+
+                    if (galleryItems.length > 0) {
+                        let currentIndex = 0;
+
+                        const renderGallery = () => {
+                            const currentItem = galleryItems[currentIndex];
+                            const content = currentItem.type === 'image'
+                                ? `<img src="${currentItem.url}" class="max-w-full max-h-[70vh] mx-auto rounded-lg shadow-md">`
+                                : `<video src="${currentItem.url}" controls class="max-w-full max-h-[70vh] mx-auto rounded-lg shadow-md"></video>`;
+
+                            $('#popupContent').html(`
+                             <div class="text-center">
+                                    <div class="mt-4">
+                                        <button class="refresh-btn" id="refreshBusData">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                                            </svg>
+                                            Back to Details
+                                        </button>
+                                    </div>
+                                <div class="flex flex-col items-center mb-4 space-y-4">
+                                    <div class="flex items-center justify-between w-full">
+                                        <button id="prevGalleryItem" class="px-4 py-2 bg-purple-600 text-white rounded-lg shadow-md hover:bg-purple-700 transition-all ${currentIndex === 0 ? 'hidden' : ''}">
+                                            &larr; Previous
+                                        </button>
+                                        <div class="flex-grow text-center">
+                                            ${content}
+                                        </div>
+                                        <button id="nextGalleryItem" class="px-4 py-2 bg-purple-600 text-white rounded-lg shadow-md hover:bg-purple-700 transition-all ${currentIndex === galleryItems.length - 1 ? 'hidden' : ''}">
+                                            Next &rarr;
+                                        </button>
+                                    </div>
+                                </div>
+                            `);
+
+                            $('#prevGalleryItem').off('click').on('click', () => {
+                                if (currentIndex > 0) {
+                                    currentIndex--;
+                                    renderGallery();
+                                }
+                            });
+
+                            $('#nextGalleryItem').off('click').on('click', () => {
+                                if (currentIndex < galleryItems.length - 1) {
+                                    currentIndex++;
+                                    renderGallery();
+                                }
+                            });
+                        };
+
+                        renderGallery();
+                    
+                    }    });
+
+                    } else {
+                        $(`#gallery-img-${bus_number}-preview`).text("No images available").addClass('hidden');
+                    }
+
+                
+                // $(`#bus-side-image-${bus_number}-preview`).attr("image-data", details.gps_img).removeClass('hidden');
+                // $(`#bus-video-${bus_number}-preview`).attr("video-data", details.bus_video).removeClass('hidden');
+            },
+
+            fetchInstallationData: async (id, bus_number) => {
+                try {
+                    const response = await apiService.get(config.endpoints.installation, { gps_device_installation: id });
+                    console.log('Installation Data Response:', response); // Log the response
+
+                    const collectData = response.data[0];
+
+                    if (collectData && collectData.gps_device_installation && id === collectData.gps_device_installation) {
+                        busDataService.updateInstallationUI(collectData, bus_number);
+                    } else {
+                        alert("No valid installation data found for ID:", id);
+                    }
+                } catch (error) {
+                    console.error("Error fetching installation data:", error);
+                }
+            },
+
+            updateInstallationUI: (data, bus_number) => {
+                // Update device number
+                if (data.device_number) {
+                    $(`#device-details-${bus_number}`).removeClass('hidden')
+                    $(`#device-not-register-${bus_number}`).addClass('hidden')
+
+                    $(`.device-stepper-${bus_number}`).addClass("step-completed")
+
+                    $(`#device-number-${bus_number}`)
+                        .text(`${data.device_number} ✔️`)
+                    $(`#device-method-${bus_number}`).text(`${data.mannul_gps ? "Manual" : "Scanned"}`);
+                } else {
+                    $(`#device-not-register-${bus_number}`).remove('hidden')
+
+                    $(`#device-number-${bus_number}`).addClass("hidden");
+                }
+
+                // Update SIM number
+                if (data.sim_number) {
+                    $(`#sim-details-${bus_number}`).removeClass('hidden')
+                    $(`#sim-not-register-${bus_number}`).addClass('hidden')
+                    $(`#sim-number-${bus_number}`)
+                        .text(`${data.sim_number} ✔️`)
+                    $(`.sim-stepper-${bus_number}`).addClass("step-completed")
+
+                    $(`#sim-method-${bus_number}`).text(`${data.mannul_sim ? "Manual" : "Scanned"}`);
+                } else {
+                    $(`#sim-not-register-${bus_number}`).remove('hidden')
+                    $(`#sim-number-${bus_number}`).addClass("hidden");
+                }
+
+                if (data.remark) {
+
+                    $(`#remarks-${bus_number}`).text(data.remark);
+                } 
+
+
+                // Update images
+                if (data.sim_img) {
+                    const previewElement = $(`#sim-image-${bus_number}-preview`);
+
+                    previewElement
+                        .removeClass("hidden")
+                        .data('img-url',data.sim_img)
+                        .off('click') // Remove previous handler if any
+                        .on('click', function () {
+                            const imgUrl = $(this).data('img-url');
+                            console.log(imgUrl);
+                            popupService.showImage(imgUrl);
+                        });
+                
+                
+                }
+                if (data.device_img) {
+                    const previewElement = $(`#device-image-${bus_number}-preview`);
+                    previewElement
+                        .removeClass("hidden")
+                        .data('img-url',data.device_img)
+                        .off('click') // Remove previous handler if any
+                        .on('click', function () {
+                            const imgUrl = $(this).data('img-url');
+                            console.log(imgUrl);
+                            popupService.showImage(imgUrl);
+                        });
+                 }
+
+                // Update ignition status
+                if (data.ignition === "0") {
+                    $(`.ignition-on-stepper-${bus_number}`).addClass('step-completed')
+                    $(`#ignition-on-${bus_number}`).text("Ignition successfully detected as ON: ✔️");
+                }
+                if (data.ignition === "1") {
+                    $(`.ignition-on-stepper-${bus_number}`).addClass('step-completed')
+                    $(`.ignition-off-stepper-${bus_number}`).addClass('step-completed')
+
+                    $(`#ignition-on-${bus_number}`).text("Ignition successfully detected as ON: ✔️");
+                    $(`#ignition-off-${bus_number}`).text("Ignition successfully detected as OFF: ✔️");
+                }
+
+                if (data.device_installation_img) {
+                    $(`.device-img-${bus_number}`).addClass('step-completed')
+
+                    $(`.step-details-${bus_number}`).removeClass("hidden")
+                    $(`#provider-${bus_number}`).text(data.provider)
+
+                    $(`.step-details-not-done-${bus_number}`).addClass("hidden")
+                    
+                    const previewElement = $(`#gps-img-${bus_number}-preview`);
+                    const previewEarthingElement = $(`#earthing-img-${bus_number}-preview`);
+                    const previewIgnitionElement = $(`#ignition-img-${bus_number}-preview`);
+
+                    previewElement
+                        .removeClass("hidden")
+                        .data('img-url',data.device_installation_img)
+                        .off('click') // Remove previous handler if any
+                        .on('click', function () {
+                            const imgUrl = $(this).data('img-url');
+                            console.log(imgUrl);
+                            popupService.showImage(imgUrl);
+                        });
+                    
+                     previewEarthingElement
+                        .removeClass("hidden")
+                        .data('img-url',data.earthing_img)
+                        .off('click') // Remove previous handler if any
+                        .on('click', function () {
+                            const imgUrl = $(this).data('img-url');
+                            console.log(imgUrl);
+                            popupService.showImage(imgUrl);
+                        });
+                    
+                        previewIgnitionElement
+                        .removeClass("hidden")
+                        .data('img-url',data.ignition_img)
+                        .off('click') // Remove previous handler if any
+                        .on('click', function () {
+                            const imgUrl = $(this).data('img-url');
+                            console.log(imgUrl);
+                            popupService.showImage(imgUrl);
+                        });
+
+                }
+
+
+
+                // Setup history click handler
+                $(`#history-${bus_number}`).off('click').on('click', () => {
+                    busDataService.fetchInstallationHistoryWithLoader(bus_number, data.tracker_id);
+                });
+            },
+
+            fetchInstallationHistoryWithLoader: (bus_number, trackId) => {
+                const historyWrapper = $(`#historySwiper-${bus_number}`);
+                if (historyWrapper.hasClass('hidden')) {
+                    busDataService.fetchInstallationHistory(bus_number, trackId);
+                    historyWrapper.removeClass('hidden');
+                } else {
+                    historyWrapper.addClass('hidden');
+                    $(`#paginationControls-${bus_number}`).addClass('hidden');
+                }
+            },
+
+            fetchInstallationHistory: async (bus_number, trackId, isPopup = false) => {
+                try {
+                    const response = await fetch(`${config.baseUrl}${config.endpoints.gpsHistory}${trackId}/`);
+                    const data = await response.json();
+
+                    state.historyRecords[bus_number] = data.history || [];
+                    state.historyCurrentPage[bus_number] = 1;
+
+                    if (isPopup) {
+                        ui.renderPopupHistory(bus_number);
+                    } else {
+                        if (state.historyRecords[bus_number].length === 0) {
+                            $(`#swiperWrapper-${bus_number}`).html('<p class="text-gray-600">No history available.</p>');
+                        } else {
+                            ui.renderHistoryPage(bus_number);
+                            $(`#paginationControls-${bus_number}`).removeClass('hidden');
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error fetching history:', error);
+                    const errorMsg = '<p class="text-red-600">Failed to load history. Please try again.</p>';
+                    if (isPopup) {
+                        $('#historyContainer').html(errorMsg);
+                    } else {
+                        $(`#swiperWrapper-${bus_number}`).html(errorMsg);
+                    }
+                }
+            },
+
+            saveRemarks: (gpsId, bus_number) => {
+                const remarks = $(`#remarks-${bus_number}`).val();
+                if (!remarks) {
+                    utils.showError("Please enter remarks..");
+                    return;
+                }
+
+                apiService.patch(config.endpoints.installation, gpsId, { "remark": remarks || "" },'/')
+                    .catch(error => console.error("Error updating remarks:", error));
+            },
+
+            sendRequest: (bus_number, operatorId, operatorMobile, operatorAddress, operatorName, busId, gps_id,selectedJobType) => {
+                const mobileNumber = parseInt($(`#popup-mobile-${bus_number}`).val().trim(), 10);
+                const encodeaddress = decodeURIComponent(operatorAddress);
+                const encodeOperatorName = decodeURIComponent(operatorName);
+
+                if (gps_id == null && busId != null && operatorId != null && bus_number != null && operatorMobile != null) {
+                  var postData = {}
+                  console.log(selectedJobType);
+                    if(selectedJobType == "Installation" ){
+                        
+                    postData = {
+                        "user_number": mobileNumber,
+                        "operator": operatorId,
+                        "operator_mobile": operatorMobile,
+                        "bus": busId,
+                        "address": encodeaddress,
+                        "status": "0",
+                        "bus_number": bus_number,
+                        "operator_name":encodeOperatorName??"",
+                        "installation_date":new Date().toISOString(),
+                        "job_type": selectedJobType,
+                        "device_installtion": true,
+                        "device_qc": false,
+                        "bus_qc": true,
+                        "bus_quality_details": [],
+                        "by_pass_ignition_off": false,
+                        "by_pass_ignition_on": false
+                    };
+
+                   }else{
+                    console.log(selectedJobType);
+                     postData = {
+                        "user_number": mobileNumber,
+                        "operator": operatorId,
+                        "operator_mobile": operatorMobile,
+                        "bus": busId,
+                        "address": encodeaddress,
+                        "status": "0",
+                        "bus_number": bus_number,
+                        "operator_name":encodeOperatorName??"",
+                        "repair_date":new Date().toISOString(),
+                        "job_type": selectedJobType,
+                        "device_installtion": true,
+                        "device_qc": false,
+                        "bus_qc": true,
+                        "bus_quality_details": [],
+                        "by_pass_ignition_off": false,
+                        "by_pass_ignition_on": false
+                    };
+
+                   }
+                   
+                    apiService.post(config.endpoints.busForm, postData)
+                        .then(data => {
+                            const matchedUser = state.allTechnicians.find(user => String(user.number) === String(mobileNumber));
+                            if (matchedUser) {
+                                $(`#user-assign-${bus_number}`).text(matchedUser.name.toUpperCase());
+                                $(`#assign-${bus_number}`).text('Re-Assign')
+                                $(`#bus_status-${bus_number}`).html(utils.getStatusBadge('Assigned'));
+                   
+                            }
+                            $(`#show-${bus_number}`).prop('disabled', false).removeClass('opacity-50 cursor-not-allowed');
+                            alert("Assign Successfully....")
+                        })
+                        .catch(error => {
+                            if (error.status === 404) {
+                                console.error("Error 404: Resource not found");
+                            } else {
+                                console.error("Error updating data:", error);
+                                utils.showError("An error occurred: " + error.status + " " + error.statusText);
+                            }
+                        });
+                } else {
+                    var pos={}
+                    if(selectedJobType == "Installation" ){
+                    pos = {
+                        "address": encodeaddress,
+                        "user_number": mobileNumber || 0,
+                        "device_installtion": true,
+                        "device_qc": false,
+                        "bus_qc": true,
+                        "bus_number":bus_number,
+                        "operator_name":encodeOperatorName??"",
+                        "installation_date":new Date().toISOString(),
+                        "job_type": selectedJobType,
+                    }}else{
+                        pos = {
+                            "address": encodeaddress,
+                            "user_number": mobileNumber || 0,
+                            "device_installtion": true,
+                            "device_qc": false,
+                            "bus_qc": true,
+                            "bus_number":bus_number,
+                            "operator_name":encodeOperatorName??"",
+                            "repair_date":new Date().toISOString(),
+                            "job_type": selectedJobType,
+                        }
+                    }
+                    apiService.patch(config.endpoints.busForm, gps_id, pos,'/').then(() => {
+                        const matchedUser = state.allTechnicians.find(user => String(user.number) === String(mobileNumber));
+                        if (matchedUser) {
+                            $(`#user-assign-${element.bus_number}`).text(matchedUser.name.toUpperCase());
+                            $(`#assign-${element.bus_number}`).text('Re-Assign')
+                            $(`#bus_status-${element.bus_number}`).html(utils.getStatusBadge('Assigned'));
+                        }
+                        alert("Assign Successfully....")
+                    });
+                }
+            }
+        };
+
+        // ==================== OperatorCallback Service ====================
+        const operatorCallLog={
+            fetchOperatorCallLog: async (gpsId) => {
+                try {
+                    console.log('Fetching operator call logs for GPS ID:', gpsId);
+                    const response = await apiService.get(config.endpoints.operatorCall, { gps_id: gpsId });
+                        if (response.length > 0) {
+                             console.log('Operator Call Logs:', response);
+                        } else
+                            {
+                                console.log('No call logs found for this Id.');
+                            }
+                      }catch (error) {
+                        console.error('Error fetching operator call logs:', error);
+                }
+             }
+            }
+        // ==================== USER SERVICE ====================
+        const userService = {
+            fetchTechnicians: async (showPopup = false) => {
+                try {
+                    const response = await apiService.get(config.endpoints.userApi);
+                    // ui.allTechnicians = data; 
+                    state.allTechnicians = response.map(user => ({
+                        id: user.id,
+                        name: user.name,
+                        number: user.number,
+                        email: user.email,
+                        is_active: user.is_active
+                    }));
+
+                    ui.renderTechniciansTable(response);
+
+                    if (showPopup) {
+                        elements.editTechniciansModal.removeClass('hidden');
+                    }
+
+                    ui.attachEditEventListeners();
+                } catch (error) {
+                    console.log('Error fetching technicians:', error);
+                }
+            },
+
+            updateTechnician: (id, name, email, number, location, type ,is_active, row) => {
+                const updateData = {
+                    name: name,
+                    email: email,
+                    number: number,
+                    location:location,
+                    type: type,
+                    is_active: is_active === 'true' || is_active === true
+                };
+
+                apiService.patch(config.endpoints.userApi, id, updateData)
+                    .then(response => {
+                        // Disable fields after saving
+                        row.find('.name-input').prop('disabled', true);
+                        row.find('.number-input').prop('disabled', true);
+                        row.find('.email-input').prop('disabled', true);
+                        row.find('.location-input').prop('disabled', true);
+                        row.find('.type-input').prop('disabled', true);
+                        // Change active status back to text input
+                        const activeText = updateData.is_active ? 'Active' : 'Inactive';
+                        row.find('.active-select').replaceWith(`
+                <input type="text" class="active-input w-full px-2 py-1 border rounded" 
+                    value="${activeText}" disabled>
+            `);
+
+                        // Change button back to "Edit"
+                        const btn = row.find('.save-btn')
+                            .text('Edit')
+                            .removeClass('btn-success save-btn')
+                            .addClass('btn-primary edit-btn');
+
+                        // Reattach the edit handler
+                        btn.off('click').on('click', function () {
+                            ui.attachEditHandler(row);
+                        });
+
+                        // Show success alert
+                        utils.showSuccess('User updated successfully!');
+
+                        // Refresh the technicians list
+                        userService.fetchTechnicians();
+                    })
+                    .catch(error => {
+                        console.error('Error updating technician:', error);
+                        utils.showError('Error updating technician: ' +
+                            (error.responseJSON?.detail || error.statusText || 'Unknown error'));
+
+                        // Keep the button as "Save" to allow retry
+                        row.find('.save-btn').text('Try Again');
+                    });
+            },
+
+            createUser: (formData) => {
+                apiService.post(config.endpoints.userApi, formData)
+                    .then(response => {
+                        utils.showSuccess('User created successfully!');
+                        elements.userModal.addClass("hidden");
+                        elements.userForm[0].reset();
+                        userService.fetchTechnicians();
+                    })
+                    .catch(error => {
+                        console.error('Error creating user:', error);
+                        utils.showError('Error creating user: ' + (error.responseJSON?.message || 'Unknown error'));
+                    });
+            }
+        };
+
+        function formatDateTime(dateString) {
+                const date = new Date(dateString);
+
+                const day = String(date.getDate()).padStart(2, '0');
+                const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-based
+                const year = date.getFullYear();
+
+                let hours = date.getHours();
+                const minutes = String(date.getMinutes()).padStart(2, '0');
+                const ampm = hours >= 12 ? 'PM' : 'AM';
+                hours = hours % 12;
+                hours = hours ? hours : 12; // Convert 0 to 12 for 12 AM
+                const strTime = `${hours}:${minutes} ${ampm}`;
+
+                return `${day}-${month}-${year} ${strTime}`;
+            }
+
+        // ==================== UI SERVICE ====================
+        const ui = {
+            renderPaginatedData: function (data, append = false) {
+                const container = elements.dataContainer;
+                if (!append) container.empty();
+
+                if (data.length === 0) {
+                    container.html('<div class="text-center py-12 text-gray-500">No buses found matching your criteria</div>');
+                    return;
+                }
+
+                const table = $(`
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Bus Number</th>
+                                <th>Operator</th>
+                                <th>Call Status</th>
+                                <th>Status</th>
+                                <th>Technician</th>
+                                <th>Completion Date</th>
+                                <th>Repairing Date</th>
+                                <th>Job</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody"></tbody>
+                    </table>
+                `);
+
+                if (!append) {
+                    container.append(table);
+                }
+
+                const tbody = $("#tableBody");
+                if($(verifyStatusFilter).val()=="2"){
+                    $('.totalCount').addClass("hidden")
+                    $(".listing-counts").removeClass("hidden")
+                    $("#listing-count").text(data.length);
+                }else{
+                    $('.totdalCount').removeClass("hidden")
+                    $(".listing-counts").addClass("hidden")
+                }
+                data.forEach(item => {
+                    const row = $(`
+                        <tr>
+                            <td>${item.bus_number}</td>
+                            <td >
+                              <div class="flex items-center">
+                                <span class="py-2 pr-2">${item.operator_name}</span>
+                                <button id="info-icon-${item.bus_number}" class="text-blue-500 hover:text-blue-700">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 22a10 10 0 100-20 10 10 0 000 20z" />
+                                    </svg>
+                                </button>
+                                <div id="operatorPopup-${item.bus_number}" class="hidden fixed inset-0 flex items-center justify-center z-50">
+                                    <div class="bg-white p-5 rounded-lg shadow-lg max-w-sm w-full relative border border-gray-200">
+                                        <span class="close-btn absolute top-2 right-2 text-gray-500 hover:text-gray-800 cursor-pointer text-xl">×</span>
+                                        <h3 class="text-lg font-semibold text-gray-800 mb-3">${item.operator_name}</h3>
+                                        <div class="space-y-2 text-gray-700">
+                                            <p><strong class="text-blue-600">Number:</strong> ${item.operator_number}</p>
+                                            <p><strong class="text-blue-600">Bus:</strong> ${item.bus_number}</p>
+                                            <p><strong class="text-blue-600">Address:</strong> ${item.operator_address}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                </div>
+                            <p>${item.operator_number}</p>
+                            </td>
+                            <td>
+                                <div class="flex items-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 ${(item.operator_call_log?.call_connected!=null&&item.operator_call_log?.call_connected==true)?"text-green-500":"text-red-500"} " fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M3 5l2-2m0 0l3 3m-3-3a16 16 0 0012 12l3-3m0 0l2 2m-2-2l-3 3" />
+                                    </svg>
+                                    ${item.operator_call_log?.date 
+                                        ? `<p class="text-sm text-green-600 ml-2">${utils.getStatusBadge(formatDateTime(item.operator_call_log.date))}</p>` 
+                                        : `<p class="text-sm text-red-600 ml-2">${utils.getStatusBadge('Not Picked')}</p>`}
+                                </div>
+                            </td>
+                            <td id="bus_status-${item.bus_number}">${utils.getStatusBadge(item.bus_status)} ${item.status=="2"?utils.getStatusBadge('verified'):""}</td>
+                            <td id="user-assign-${item.bus_number}">${item.user_number ? item.user_number : 'Not Assigned'}</td>
+                            <td >${item.complete_date ? utils.getStatusBadge(formatDateTime(item.complete_date)) : utils.getStatusBadge('--:--')}</td>
+                            <td >${item.repair_complete_date ? utils.getStatusBadge(formatDateTime(item.repair_complete_date)) : utils.getStatusBadge('--:--')}</td>
+                            <td>
+                                <select id="jobType-${item.bus_number}" class="rounded border border-gray-300 px-2 py-1 text-sm">
+                                    <option value="Installation" ${item.job_type == "Repair" ? "" : "selected"} >Installation</option>
+                                    <option value="Repair" ${item.job_type == "Repair" ? "selected" : ""}>Repair</option>
+                                </select>
+                            </td>
+                            <td class="space-x-2">
+                                <button id="assign-${item.bus_number}" 
+                                 class="action-btn   btn-primary">
+                                    Assign
+                                </button>
+                                <button id="show-${item.bus_number}" class="action-btn btn-secondary" ${item.gps_id == null ? 'disabled' : ''}>
+                                    Details
+                                </button>
+                                ${item.tracker_id ? `
+                                <button id="history-${item.bus_number}" class="action-btn btn-success">
+                                    History
+                                </button>
+                                ` : ''}
+                            </td>
+                        </tr>
+                        <tr id="detailsRow-${item.bus_number}">
+                            <td colspan="5" class="p-0">
+                                <div id="details-${item.bus_number}" class="details hidden p-4 bg-gray-50 border-t"></div>
+                                <div id="historySwiper-${item.bus_number}" class="hidden p-4 bg-gray-50 border-t">
+                                    <h3 class="text-lg font-bold mb-4">Installation History</h3>
+                                    <div id="swiperWrapper-${item.bus_number}" class="flex space-x-4 overflow-x-auto pb-2"></div>
+                                    <div id="paginationControls-${item.bus_number}" class="flex justify-between items-center mt-4 hidden">
+                                        <button id="prevPage-${item.bus_number}" class="action-btn btn-secondary" onclick="busDataService.navigateHistoryPage('${item.bus_number}', -1)">Previous</button>
+                                        <span id="pageInfo-${item.bus_number}" class="text-gray-600"></span>
+                                        <button id="nextPage-${item.bus_number}" class="action-btn btn-secondary" onclick="busDataService.navigateHistoryPage('${item.bus_number}', 1)">Next</button>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    `);
+                    tbody.append(row);
+
+                    // if (item.gps_id == null) {
+                    //     $(`#show-${item.bus_number}`).prop('disabled', true).addClass('opacity-50 cursor-not-allowed');
+                    // }
+                });
+
+                // Update technician names in the table
+                data.forEach(element => {
+                    const user_number = $(`#user-assign-${element.bus_number}`).text().trim();
+                    const matchedUser = state.allTechnicians.find(user => String(user.number) === String(user_number));
+                    if (matchedUser) {
+                        $(`#user-assign-${element.bus_number}`).text(matchedUser.name.toUpperCase());
+                        $(`#assign-${element.bus_number}`).text('Re-Assign')
+                       
+                    }
+                    
+                });
+                this.setupAllHandlers();
+
+            },
+
+            setupAllHandlers: function () {
+                this.setupAssignTechnicianHandlers();
+                this.setupInfoIconHandlers();
+                this.setupShowDetailsHandlers();
+                this.setupAssignPopupHandlers();
+            },
+
+           
+            renderTechniciansTable: function (technicians) {
+                const tbody = $('#techniciansTable tbody');
+                tbody.empty();
+
+                technicians.forEach(user => {
+                    const row = $(`
+                            <tr data-id="${user.id}">
+                                <td class="p-3">${user.id}</td>
+                                <td class="p-3"><input type="text" class="name-input w-full px-2 py-1 border rounded" value="${user.name}" disabled></td>
+                                <td class="p-3"><input type="text" class="number-input w-full px-2 py-1 border rounded" value="${user.number}" disabled></td>
+                                <td class="p-3"><input type="text" class="email-input w-full px-2 py-1 border rounded" value="${user.email}" disabled></td>
+                                 <td class="p-3"><input type="text" class="location-input w-full px-2 py-1 border rounded" value="${user.location}" disabled></td>
+                                  <td class="p-3"><input type="text" class="type-input w-full px-2 py-1 border rounded" value="${user.type}" disabled></td>
+                                <td class="p-3">
+                                    <input type="text" class="active-input w-full px-2 py-1 border rounded" 
+                                        value="${user.is_active ? 'Active' : 'Inactive'}" disabled>
+                                </td>
+                                <td class="p-3">
+                                    <button class="action-btn btn-primary edit-btn">
+                                        Edit
+                                    </button>
+                                </td>
+                            </tr>
+                        `);
+                    tbody.append(row);
+
+                    // Attach edit handler to this row's button
+                    row.find('.edit-btn').off('click').on('click', function () {
+                        ui.attachEditHandler(row);
+                    });
+                });
+            },
+
+            renderHistoryPage: function (bus_number) {
+                const wrapper = $(`#swiperWrapper-${bus_number}`);
+                wrapper.empty().addClass("flex flex-row gap-4");
+
+                const startIndex = (state.historyCurrentPage[bus_number] - 1) * config.pagination.historyRecordsPerPage;
+                const endIndex = startIndex + config.pagination.historyRecordsPerPage;
+                const pageData = state.historyRecords[bus_number].slice(startIndex, endIndex);
+
+                pageData.forEach((entry) => {
+                    const fields = entry.fields;
+                    wrapper.append(`
+                        <div class="bg-white p-4 rounded-lg shadow-sm min-w-[300px] flex-shrink-0">
+                            <div class="flex items-center space-x-3 mb-3">
+                                <div class="bg-purple-100 p-2 rounded-full">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="font-medium">Device History</p>
+                                    <p class="text-xs text-gray-500">${utils.formatDate(entry.history_date)}</p>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 gap-3">
+                                <div class="text-sm">
+                                    <p class="font-medium text-gray-500">Device Number</p>
+                                    <p>${fields.device_number || 'N/A'}</p>
+                                </div>
+                                <div class="text-sm">
+                                    <p class="font-medium text-gray-500">SIM Number</p>
+                                    <p>${fields.sim_number || 'N/A'}</p>
+                                </div>
+                                <div class="text-sm">
+                                    <p class="font-medium text-gray-500">Status</p>
+                                    <p>${utils.getStatusBadge(fields.status)}</p>
+                                </div>
+                                ${fields.sim_img ? `
+                                <button class="preview-btn mt-1" image-data="${fields.sim_img}" onclick="ui.showPreview(this)">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                    View SIM Image
+                                </button>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `);
+                });
+
+                this.updateHistoryPagination(bus_number);
+            },
+
+            renderPopupHistory: function (bus_number) {
+                const container = $('#historyContainer');
+                container.empty();
+
+                state.historyRecords[bus_number].forEach((entry) => {
+                    const fields = entry.fields;
+                    container.append(`
+                        <div class="bg-white p-4 rounded-lg shadow-sm">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="flex items-center space-x-3">
+                                    <div class="bg-purple-100 p-2 rounded-full">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                        </svg>
+                                    </div>
+                                    <p class="text-sm font-medium">${utils.formatDate(entry.history_date)}</p>
+                                </div>
+                                <span class="text-sm ${fields.status === "2" ? 'text-green-600' : fields.status === "1" ? 'text-red-600' : 'text-yellow-600'}">
+                                    ${fields.status === "2" ? 'Verified' : fields.status === "1" ? 'Rejected' : 'Pending'}
+                                </span>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="space-y-2">
+                                    <div class="text-sm">
+                                        <p class="font-medium text-gray-500">Device Number</p>
+                                        <p>${fields.device_number || 'N/A'}</p>
+                                    </div>
+                                    <div class="text-sm">
+                                        <p class="font-medium text-gray-500">SIM Number</p>
+                                        <p>${fields.sim_number || 'N/A'}</p>
+                                    </div>
+                                    <div class="text-sm">
+                                        <p class="font-medium text-gray-500">Provider</p>
+                                        <p>${fields.provider || 'N/A'}</p>
+                                    </div>
+                                </div>
+                                <div class="space-y-2">
+                                    <div class="text-sm">
+                                        <p class="font-medium text-gray-500">Ignition</p>
+                                        <p>${fields.ignition === "1" ? 'On' : 'Off'}</p>
+                                    </div>
+                                    <div class="text-sm">
+                                        <p class="font-medium text-gray-500">Remarks</p>
+                                        <p>${fields.remark || 'N/A'}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            ${fields.sim_img || fields.device_installation_img ? `
+                            <div class="mt-4 flex flex-wrap gap-2">
+                                ${fields.sim_img ? `
+                                <button class="preview-btn" image-data="${fields.sim_img}" onclick="ui.showPreview(this)">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                    SIM Image
+                                </button>
+                                ` : ''}
+                                ${fields.device_installation_img ? `
+                                <button class="preview-btn" image-data="${fields.device_installation_img}" onclick="ui.showPreview(this)">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                    Installation Image
+                                </button>
+                                ` : ''}
+                            </div>
+                            ` : ''}
+                        </div>
+                    `);
+                });
+            },
+
+            updateHistoryPagination: function (bus_number) {
+                const totalPages = Math.ceil(state.historyRecords[bus_number].length / config.pagination.historyRecordsPerPage);
+                $(`#pageInfo-${bus_number}`).text(`Page ${state.historyCurrentPage[bus_number]} of ${totalPages}`);
+
+                $(`#prevPage-${bus_number}`).prop('disabled', state.historyCurrentPage[bus_number] === 1);
+                $(`#nextPage-${bus_number}`).prop('disabled', state.historyCurrentPage[bus_number] === totalPages);
+            },
+
+            showPreview: function (element) {
+                const imageUrl = $(element).attr('image-data');
+                if (!imageUrl) return;
+
+                $('#popupContent').html(`<img src="${imageUrl}" class="max-w-full max-h-[80vh] mx-auto">`);
+                $('#previewPopup').removeClass('hidden');
+
+                // Close when clicking the close button
+                $('#previewPopup button').off('click').on('click', function () {
+                    $('#previewPopup').addClass('hidden');
+                });
+            },
+
+            attachEditHandler: function (row) {
+                const id = row.data('id');
+                const nameInput = row.find('.name-input');
+                const numberInput = row.find('.number-input');
+                const emailInput = row.find('.email-input');
+                const activeInput = row.find('.active-input');
+                const locationInput = row.find('.location-input');
+                const typeInput = row.find('.type-input');
+                const editBtn = row.find('.edit-btn');
+
+                // Enable input fields
+                nameInput.prop('disabled', false);
+                numberInput.prop('disabled', false);
+                emailInput.prop('disabled', false);
+                locationInput.prop('disabled', false);
+                typeInput.prop('disabled', false);
+
+                // Change active status to dropdown
+                const inputValue = activeInput && activeInput.val() ? String(activeInput.val()).toLowerCase() : '';
+                const isActive = inputValue === 'active';
+                activeInput.replaceWith(`
+                    <select class="active-select w-full px-2 py-1 border rounded">
+                        <option value="true" ${isActive ? 'selected' : ''}>Active</option>
+                        <option value="false" ${!isActive ? 'selected' : ''}>Inactive</option>
+                    </select>
+                `);
+
+                const activeSelect = row.find('.active-select');
+
+                // Change button to "Save"
+                editBtn
+                    .text('Save')
+                    .removeClass('btn-primary edit-btn')
+                    .addClass('btn-success save-btn')
+                    .off('click') // Remove previous click handler
+                    .on('click', function () {
+                        // Validate inputs
+                        if (!nameInput.val().trim() || !numberInput.val().trim() || !emailInput.val().trim() || !locationInput.val().trim() || !typeInput.val().trim()) {
+                            utils.showError('Please fill in all fields');
+                            return;
+                        }
+
+                        userService.updateTechnician(
+                            id,
+                            nameInput.val().trim(),
+                            emailInput.val().trim(),
+                            numberInput.val().trim(),
+                            locationInput.val().trim(),
+                            typeInput.val().trim(),
+                            activeSelect.val(),
+                            row
+                        );
+                    });
+            },
+
+            setupAssignTechnicianHandlers: function () {
+                $('[id^="assign-"]').each(function () {
+                    const busNumber = $(this).attr('id').split('-')[1];
+                    const technicianInput = $(`#popup-technician-${busNumber}`);
+                    const suggestionBox = $(`#suggestionBox-${busNumber}`);
+
+                    technicianInput.on('input', utils.debounce(function (e) {
+                        const searchTerm = $(this).val().toLowerCase();
+                        if (searchTerm.length > 0) {
+                            const filtered = state.allTechnicians.filter(tech =>
+                                tech.name.toLowerCase().includes(searchTerm)
+                            );
+                            ui.showSuggestions(filtered, busNumber);
+                        } else {
+                            suggestionBox.addClass('hidden').removeClass('block');
+                        }
+                    }, 300));
+                });
+            },
+
+            showSuggestions: function (technicians, busNumber) {
+                const suggestionBox = $(`#suggestionBox-${busNumber}`);
+                const technicianInput = $(`#popup-technician-${busNumber}`);
+                const mobileInput = $(`#popup-mobile-${busNumber}`);
+
+                suggestionBox.empty().removeClass('hidden').addClass('block');
+
+                // Position the suggestion box below the input field
+                const inputRect = technicianInput[0].getBoundingClientRect();
+                suggestionBox.css({ 'width': '300px' });
+
+                if (technicians.length === 0) {
+                    suggestionBox.append('<div class="p-2 text-gray-500">No matching technicians found</div>');
+                    return;
+                }
+
+                technicians.forEach(tech => {
+                    const suggestionItem = $('<div>')
+                        .addClass('p-2 hover:bg-gray-100 cursor-pointer border-b border-gray-200 last:border-b-0')
+                        .text(`${tech.name} (${tech.number})`).off('click')
+                        .on('click', function () {
+                            technicianInput.val(`${tech.name}`);
+                            mobileInput.val(tech.number);
+                            suggestionBox.addClass('hidden').removeClass('block');
+                        });
+
+                    suggestionBox.append(suggestionItem);
+                });
+            },
+
+            setupInfoIconHandlers: function () {
+
+                $(document).off('click', '[id^="info-icon-"]').on('click', '[id^="info-icon-"]', function (e) {
+                    e.stopPropagation();
+                    const busNumber = $(this).attr('id').replace('info-icon-', '');
+                    console.log(busNumber);
+                    $(`#operatorPopup-${busNumber}`).removeClass('hidden');
+                });
+                $(document).off('click', '.close-btn').on('click', '.close-btn', function (e) {
+                    e.stopPropagation();
+                    $(this).closest('[id^="operatorPopup-"]').addClass('hidden');
+                });
+            },
+
+
+            setupShowDetailsHandlers: function () {
+                $('[id^="show-"]').off("click").on('click', function () {
+                    const busNumber = $(this).attr('id').replace('show-', '');
+                    const busData = state.allBusData.find(bus => bus.bus_number === busNumber);
+                    if (busData) {
+                        popupService.showBusDetails(busData);
+                    }
+                });
+            },
+
+            setupAssignPopupHandlers: function () {
+                $('[id^="assign-"]').off('click').on('click', function () {
+                    const busNumber = $(this).attr('id').replace('assign-', '');
+                    const popup = $(`
+                        <div class="fixed inset-0 flex items-center justify-center z-50"  id="overlay-${busNumber}">
+                            <div class="absolute inset-0 bg-black bg-opacity-50" id="overlay-${busNumber}"></div>
+                            <div class="bg-white rounded-lg shadow-xl p-6 w-96 relative z-10">
+                                <h3 class="text-lg font-semibold mb-4">Assign Technician</h3>
+                                <div class="space-y-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Technician</label>
+                                        <input type="text" id="popup-technician-${busNumber}"
+                                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                            placeholder="Search technician">
+                                        <div id="suggestionBox-${busNumber}" class="hidden absolute w-full bg-white shadow-lg rounded-md border border-gray-200 mt-1 z-50 max-h-60 overflow-auto"></div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Mobile Number</label>
+                                        <input type="text" id="popup-mobile-${busNumber}"
+                                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                            placeholder="Enter mobile number">
+                                    </div>
+                                    <div class="flex justify-end space-x-3">
+                                        <button type="button" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 cancel-assign" data-bus-number="${busNumber}">
+                                            Cancel
+                                        </button>
+                                        <button type="button" class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 confirm-assign"
+                                            data-bus-number="${busNumber}"
+                                            data-operator-name="${encodeURIComponent(state.allBusData.find(b => b.bus_number === busNumber)?.operator_name || "")}"
+                                            data-operator-id="${encodeURIComponent(state.allBusData.find(b => b.bus_number === busNumber)?.operator_id || "")}"
+                                            data-operator-mobile="${encodeURIComponent(state.allBusData.find(b => b.bus_number === busNumber)?.operator_mobile || '')}"
+                                            data-operator-address="${encodeURIComponent(state.allBusData.find(b => b.bus_number === busNumber)?.operator_address || '')}"
+                                            data-bus-id="${encodeURIComponent(state.allBusData.find(b => b.bus_number === busNumber)?.bus_id || '')}"
+                                            data-gps-id="${state.allBusData.find(b => b.bus_number === busNumber)?.gps_id || 'null'}">
+                                            Assign
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `);
+
+                    $('body').append(popup);
+
+                    // Setup suggestion box
+                    $(`#popup-technician-${busNumber}`).on('input', utils.debounce(function (e) {
+                        const searchTerm = $(this).val().toLowerCase();
+                        if (searchTerm.length > 0) {
+                            const filtered = state.allTechnicians.filter(tech =>
+                                tech.name.toLowerCase().includes(searchTerm)
+                            );
+                            ui.showSuggestions(filtered, busNumber);
+                        } else {
+                            $(`#suggestionBox-${busNumber}`).addClass('hidden').removeClass('block');
+                        }
+                    }, 300));
+
+                    $(document).off('click', `.cancel-assign[data-bus-number="${busNumber}"]`).on('click', `.cancel-assign[data-bus-number="${busNumber}"]`, function () {
+                        $(`#overlay-${busNumber}`).next().remove();
+                        $(`#overlay-${busNumber}`).remove();
+                    });
+                    const selectedJobType = $(`#jobType-${busNumber}`).val();
+                    // Setup assign button
+                    $(`.confirm-assign[data-bus-number="${busNumber}"]`).off('click').on('click', function () {
+                        
+                        const busNumber = $(this).data('bus-number');
+                        const operatorId = $(this).data('operator-id');
+                        const operatorName = $(this).data('operator-name');
+                        const operatorMobile = $(this).data('operator-mobile');
+                        const operatorAddress = $(this).data('operator-address');
+                        const busId = $(this).data('bus-id');
+                        const gpsId = $(this).data('gps-id');
+
+                        busDataService.sendRequest(busNumber, operatorId, operatorMobile, operatorAddress, operatorName, busId, gpsId, selectedJobType);
+                        
+                        $(`#overlay-${busNumber}`).next().remove();
+                        $(`#overlay-${busNumber}`).remove();
+                    });
+                });
+            }
+        };
+
+        // ==================== INITIALIZATION ====================
+        $(document).ready(function () {
+            elements.statusFilter.on("change", utils.debounce(() => {
+                const busNumber = elements.busNumberFilter.val().trim();
+                const operatorName = elements.operatorNameFilter.val().trim();
+                const status = elements.statusFilter.val().trim();
+
+                busDataService.fetchBusData(busNumber, operatorName,status);
+            }, 300));
+
+            elements.verifyStatusFilter.on("change", utils.debounce(() => {
+                const busNumber = elements.busNumberFilter.val().trim();
+                const operatorName = elements.operatorNameFilter.val().trim();
+                const status = elements.statusFilter.val().trim();
+                const verifyStatus = elements.verifyStatusFilter.val().trim();
+
+                busDataService.fetchBusData(busNumber, operatorName,status,verifyStatus);
+            }, 300));
+
+            // Filter by Bus Number
+            elements.busNumberFilter.on("input", utils.debounce(() => {
+                const busNumber = elements.busNumberFilter.val().trim();
+                const operatorName = elements.operatorNameFilter.val().trim();
+                busDataService.fetchBusData(busNumber, operatorName);
+            }, 300));
+
+            // Filter by Operator Name
+            elements.operatorNameFilter.on("input", utils.debounce(() => {
+                const operatorName = elements.operatorNameFilter.val().trim();
+                const busNumber = elements.busNumberFilter.val().trim();
+                busDataService.fetchBusData(busNumber, operatorName);
+            }, 300));
+
+            $('#technician_input').on('input', function () {
+                const searchTerm = $(this).val().toLowerCase();
+                const matches = state.allTechnicians.filter(tech =>
+                    tech.name.toLowerCase().includes(searchTerm)
+                );
+
+                const $suggestions = $('#technician_suggestions');
+                $suggestions.empty();
+
+                if (matches.length > 0) {
+                    matches.forEach(tech => {
+                        $suggestions.append(`<div class="px-3 py-2 hover:bg-gray-200 cursor-pointer" data-id="${tech.number}">${tech.name}</div>`);
+                    });
+                    $suggestions.removeClass('hidden');
+                } else {
+                    $suggestions.addClass('hidden');
+                }
+            });
+
+            // On suggestion click – select technician and call filter API
+            $('#technician_suggestions').on('click', 'div', function () {
+                const techName = $(this).text();
+                selectedTechnician = $(this).data('id');
+
+                $('#technician_input').val(techName);
+                $('#technician_suggestions').addClass('hidden');
+
+                console.log(selectedTechnician)
+                const busNumber = elements.busNumberFilter.val().trim();
+                const operatorName = elements.operatorNameFilter.val().trim();
+                const status = elements.statusFilter.val().trim();
+                const verifyStatus = elements.verifyStatusFilter.val().trim();
+
+                // Now hit the API to filter
+                busDataService.fetchBusData(busNumber,operatorName,status,verifyStatus,selectedTechnician);
+            });
+
+
+
+            // User creation modal
+            $('#userCreate').off('click').on('click', function () {
+                elements.userModal.removeClass("hidden");
+            });
+
+            elements.userModal.off('click', "#closeModal, #cancelBtn").on("click", "#closeModal, #cancelBtn", function (e) {
+                if (e.target === this || e.target.id === 'closeModal' || e.target.id === 'cancelBtn') {
+                    elements.userModal.addClass("hidden");
+                    elements.userForm[0].reset();
+                }
+            });
+
+            elements.userForm.on('submit', function (e) {
+                e.preventDefault();
+                const formData = {
+                    name: $('#userName').val(),
+                    email: $('#userEmail').val(),
+                    number: $('#userNumber').val(),
+                    location: $('#location').val(),
+                    type: $('#type').val(),
+                    user_group: "",
+                    otp: "0",
+                    is_active: true,
+                    user_name: $('#userNumber').val().toLowerCase().replace(/\s+/g, '_'),
+                    manager_email: ""
+                };
+                userService.createUser(formData);
+            });
+
+            // Edit technicians modal
+            $('#openEditModal').off('click').on('click', function () { userService.fetchTechnicians(true) });
+            $('.editCloseModal').off('click').on('click', function () { elements.editTechniciansModal.addClass('hidden') });
+
+            // Close popup handlers
+            $('#closePopup').off('click').on('click', function () {
+                $('#busPopup').addClass('hidden');
+            });
+
+            $('#busPopup').off('click').on('click', function (e) {
+                if (e.target === this) {
+                    $(this).addClass('hidden');
+                }
+            });
+
+            $('#previewPopup').off('click').on('click', function (e) {
+                if (e.target === this) {
+                    $(this).addClass('hidden');
+                }
+            });
+
+            // Refresh button
+            $(document).on('click', '.refresh-btn', function () {
+                popupService.refreshBusData();
+            });
+
+            $('#technicianSearchInput').on('input', function () {
+                const searchValue = $(this).val().toLowerCase();
+
+                const filteredTechnicians = state.allTechnicians.filter(user => 
+                    user.name.toLowerCase().includes(searchValue)
+                );
+
+                ui.renderTechniciansTable(filteredTechnicians);
+            });
+
+
+            // Initial data load
+
+            userService.fetchTechnicians();
+            busDataService.fetchPaginatedData(1);
+        });
+    </script>
+</body>
+
+</html>
