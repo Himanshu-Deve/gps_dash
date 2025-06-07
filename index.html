@@ -842,7 +842,7 @@
             currentBus: null,
 
             showBusDetails: function (busData) {
-                this.currentBus = busData;
+                this.currentBus = busData;  
                 this.renderBusDetails(busData);
                 busDataService.fetchInstallationData(busData.gps_id, busData.bus_number)
                 busDataService.fetchBusFormData(busData.bus_number, busData.gps_id);
@@ -857,7 +857,9 @@
                 const ignitionOnStatus = bus.ignition === "1" ? 'completed' : 'pending';
                 const ignitionOffStatus = bus.ignition === "0" ? 'completed' : 'pending';
                 const installationStatus = bus.device_installation_img ? 'completed' : 'pending';
-
+                $('.popup-card').attr('data-status', bus.bus_status);
+                let status = $('.popup-card').data('status');
+                
                 let html = `
         <div class="flex justify-end">  <button class="refresh-btn" id="refreshBusData">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
@@ -890,7 +892,7 @@
                         </div>
                         <div class="card-row">
                             <div class="card-label">Status:</div>
-                            <div class="card-value">${utils.getStatusBadge(bus.bus_status)}</div>
+                            <div class="card-value">${utils.getStatusBadge(status)}</div>
                         </div>
                         <div class="card-row">
                             <div class="card-label">Assigned To:</div>
@@ -1037,6 +1039,13 @@
                                     <p>Installation completed successfully</p>
                                     <p><strong>Provider:</strong><span id="provider-${bus.bus_number}"> ${bus.provider || 'N/A'}</span></p>
                                </div>
+                                <button id="installation-gallery-img-${bus.bus_number}-preview" class="preview-btn hidden" >
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                    Gallery
+                                </button>
                                <button id="gps-img-${bus.bus_number}-preview" class="preview-btn hidden">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -1146,7 +1155,8 @@
     `;
 
                 $('#popupContent').html(html);
- 
+                $('.popup-card').attr('data-gps-id', bus.gps_id);
+
                 // Attach event handlers for verification controls
                 $(`.verification-section-${bus.bus_number} input[type="checkbox"]`).on('change', function () {
                     const status = $(this).is(':checked') ? '2' : '0';
@@ -1185,9 +1195,10 @@
                     busDataService.fetchInstallationHistory(bus.bus_number, bus.tracker_id, true);
                 }
             },
-            showImage: function (imageUrl) {
+            showImage: function (imageUrl,title) {
                 $('#popupContent').html(`
                     <div class="text-center">
+                        <h2 class="text-xl font-semibold mb-2">${title}</h2>
                           <div class="mt-4">
                             <button class="refresh-btn" id="refreshBusData">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1196,15 +1207,16 @@
                                 Back to Details
                             </button>
                         </div>
-                        <img src="${imageUrl}" class="max-w-full max-h-[70vh] mx-auto rounded-lg shadow-md">
+                        <img src="${imageUrl}" class="max-w-full max-h-[60vh] mx-auto rounded-lg shadow-md">
                       
                     </div>
                 `);
                
             },
-            showVideo: function (videoUrl) {
+            showVideo: function (videoUrl,title) {
                 $('#popupContent').html(`
                     <div class="text-center">
+                        <h2 class="text-xl font-semibold mb-2">${title}</h2>
                         <div class="mt-4">
                             <button class="refresh-btn" id="refreshBusData">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1223,16 +1235,17 @@
                 if (!this.currentBus || !this.currentBus.bus_number) return;
 
                 $('#popupContent').html('<div class="text-center py-8">Loading updated data...</div>');
-
+               
                 $.ajax({
                     url: `${config.baseUrl}${config.endpoints.busList}?bus_number=${this.currentBus.bus_number}`,
                     success: (response) => {
                         const updatedBus = response.results?.[0] || response.data?.[0];
+                        let gps_id = $('.popup-card').data('gps-id');
                         if (updatedBus) {
                             this.currentBus = updatedBus;
                             this.renderBusDetails(updatedBus);
-                            busDataService.fetchInstallationData(updatedBus.gps_id, updatedBus.bus_number)
-                            busDataService.fetchBusFormData(updatedBus.bus_number, updatedBus.gps_id);
+                            busDataService.fetchInstallationData(gps_id, updatedBus.bus_number)
+                            busDataService.fetchBusFormData(updatedBus?.bus_number,gps_id);
                         } else {
                             $('#popupContent').html('<div class="text-center py-8 text-gray-500">No updated data found</div>');
                         }
@@ -1505,7 +1518,6 @@
                 $(`.step-bus-details-not-done-${bus_number}`).addClass('hidden');
                 $(`#bustype-${bus_number}`).text(`${details.bus_type}`);
                 $(`#cabin-${bus_number}`).text(` ${details.cabin ? "Yes" : "No"}`);
-
                 $(`#bus-front-image-${bus_number}-preview`).attr("image-data", details.bus_front_img).removeClass('hidden');
                 $(`#bus-back-image-${bus_number}-preview`).attr("image-data", details.bus_back_img).removeClass('hidden');
                 $(`#gallery-img-${bus_number}-preview`).attr('front-image-data',details.bus_front_img).attr('back-image-data',details.bus_back_img)
@@ -1527,7 +1539,7 @@
                         .on('click', function () {
                             const imgUrl = $(this).data('img-url');
                             console.log(imgUrl);
-                            popupService.showImage(imgUrl);
+                            popupService.showImage(imgUrl, 'Bus Front Image');
                         });
                 }
                 if (details.bus_back_img) {
@@ -1540,7 +1552,7 @@
                         .on('click', function () {
                             const imgUrl = $(this).data('img-url');
                             console.log(imgUrl);
-                            popupService.showImage(imgUrl);
+                            popupService.showImage(imgUrl, 'Bus Back Image');
                         });
                 }
                 if (details.gps_img) {
@@ -1553,7 +1565,7 @@
                         .on('click', function () {
                             const imgUrl = $(this).data('img-url');
                             console.log(imgUrl);
-                            popupService.showImage(imgUrl);
+                            popupService.showImage(imgUrl, 'Bus Side Image');
                         });
                 }
                 if (details.bus_video) {
@@ -1566,7 +1578,7 @@
                         .on('click', function () {
                             const imgUrl = $(this).data('img-url');
                             console.log(imgUrl);
-                            popupService.showVideo(imgUrl);
+                            popupService.showVideo(imgUrl, 'Bus Video');
                         });
                 
                     }
@@ -1585,10 +1597,10 @@
                     let sideImg = $(`#gallery-img-${bus_number}-preview`).attr("side-image-data");
 
                     const galleryItems = [];
-                    if (frontImg) galleryItems.push({ type: 'image', url: frontImg });
-                    if (backImg) galleryItems.push({ type: 'image', url: backImg });
-                    if (sideImg) galleryItems.push({ type: 'image', url: sideImg });
-                    if (video) galleryItems.push({ type: 'video', url: video });
+                    if (frontImg) galleryItems.push({ type: 'image', url: frontImg , title: 'Bus Front Image' });
+                    if (backImg) galleryItems.push({ type: 'image', url: backImg , title: 'Bus Back Image' });
+                    if (sideImg) galleryItems.push({ type: 'image', url: sideImg , title: 'Bus Side Image' });
+                    if (video) galleryItems.push({ type: 'video', url: video , title: 'Bus Video' });
 
                     if (galleryItems.length > 0) {
                         let currentIndex = 0;
@@ -1596,8 +1608,8 @@
                         const renderGallery = () => {
                             const currentItem = galleryItems[currentIndex];
                             const content = currentItem.type === 'image'
-                                ? `<img src="${currentItem.url}" class="max-w-full max-h-[70vh] mx-auto rounded-lg shadow-md">`
-                                : `<video src="${currentItem.url}" controls class="max-w-full max-h-[70vh] mx-auto rounded-lg shadow-md"></video>`;
+                                ? `<h2 class="text-xl font-semibold mb-2">${currentItem.title}</h2><img src="${currentItem.url}" class="max-w-full max-h-[60vh] mx-auto rounded-lg shadow-md">`
+                                : `<h2 class="text-xl font-semibold mb-2">${currentItem.title}</h2><video src="${currentItem.url}" controls class="max-w-full max-h-[60vh] mx-auto rounded-lg shadow-md"></video>`;
 
                             $('#popupContent').html(`
                              <div class="text-center">
@@ -1705,7 +1717,10 @@
                     $(`#remarks-${bus_number}`).text(data.remark);
                 } 
 
-
+              $(`#installation-gallery-img-${bus_number}-preview`).attr('device-installation-image-data', data.device_installation_img)
+                    .attr('earthing-image-data', data.earthing_img)
+                    .attr('ignition-image-data', data.ignition_img)
+             
                 // Update images
                 if (data.sim_img) {
                     const previewElement = $(`#sim-image-${bus_number}-preview`);
@@ -1734,6 +1749,7 @@
                             popupService.showImage(imgUrl);
                         });
                  }
+
 
                 // Update ignition status
                 if (data.ignition === "0") {
@@ -1767,7 +1783,7 @@
                         .on('click', function () {
                             const imgUrl = $(this).data('img-url');
                             console.log(imgUrl);
-                            popupService.showImage(imgUrl);
+                            popupService.showImage(imgUrl,"GPS Device Installation Wired Image");
                         });
                     
                      previewEarthingElement
@@ -1777,7 +1793,7 @@
                         .on('click', function () {
                             const imgUrl = $(this).data('img-url');
                             console.log(imgUrl);
-                            popupService.showImage(imgUrl);
+                            popupService.showImage(imgUrl,"Earthing Image");
                         });
                     
                         previewIgnitionElement
@@ -1787,8 +1803,84 @@
                         .on('click', function () {
                             const imgUrl = $(this).data('img-url');
                             console.log(imgUrl);
-                            popupService.showImage(imgUrl);
+                            popupService.showImage(imgUrl,"Ignition Image");
                         });
+
+                 if (data.device_installation_img || data.earthing_img || data.ignition_img) {
+
+                    const previewElement = $(`#installation-gallery-img-${bus_number}-preview`);
+
+                    previewElement
+                    .removeClass('hidden')
+                        .off('click')
+                        .on('click', function () {
+                   let deviceImg = $(`#installation-gallery-img-${bus_number}-preview`).attr("device-installation-image-data");
+                    let earthingImg = $(`#installation-gallery-img-${bus_number}-preview`).attr("earthing-image-data");
+                    let ignitionImg = $(`#installation-gallery-img-${bus_number}-preview`).attr("ignition-image-data");
+                    
+                    const galleryItems = [];
+                    if (deviceImg) galleryItems.push({ type: 'image', url: deviceImg , title: "GPS Device Installation Wired Image" });
+                    if (earthingImg) galleryItems.push({ type: 'image', url: earthingImg , title: "Earthing Image" });
+                    if (ignitionImg) galleryItems.push({ type: 'image', url: ignitionImg , title: "Ignition Image" });
+                    
+                    if (galleryItems.length > 0) {
+                        let currentIndex = 0;
+
+                        const renderGallery = () => {
+                            const currentItem = galleryItems[currentIndex];
+                            const content = currentItem.type === 'image'
+                                ? `<h2 class="text-xl font-semibold mb-2">${currentItem.title}</h2><img src="${currentItem.url}" class="max-w-full max-h-[60vh] mx-auto rounded-lg shadow-md">`
+                                : `<video src="${currentItem.url}" controls class="max-w-full max-h-[70vh] mx-auto rounded-lg shadow-md"></video>`;
+
+                            $('#popupContent').html(`
+                             <div class="text-center">
+                                    <div class="mt-4">
+                                        <button class="refresh-btn" id="refreshBusData">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                                            </svg>
+                                            Back to Details
+                                        </button>
+                                    </div>
+                                <div class="flex flex-col items-center mb-4 space-y-4">
+                                    <div class="flex items-center justify-between w-full">
+                                        <button id="prevGalleryItem" class="px-4 py-2 bg-purple-600 text-white rounded-lg shadow-md hover:bg-purple-700 transition-all ${currentIndex === 0 ? 'hidden' : ''}">
+                                            &larr; Previous
+                                        </button>
+                                        <div class="flex-grow text-center">
+                                            ${content}
+                                        </div>
+                                        <button id="nextGalleryItem" class="px-4 py-2 bg-purple-600 text-white rounded-lg shadow-md hover:bg-purple-700 transition-all ${currentIndex === galleryItems.length - 1 ? 'hidden' : ''}">
+                                            Next &rarr;
+                                        </button>
+                                    </div>
+                                </div>
+                            `);
+
+                            $('#prevGalleryItem').off('click').on('click', () => {
+                                if (currentIndex > 0) {
+                                    currentIndex--;
+                                    renderGallery();
+                                }
+                            });
+
+                            $('#nextGalleryItem').off('click').on('click', () => {
+                                if (currentIndex < galleryItems.length - 1) {
+                                    currentIndex++;
+                                    renderGallery();
+                                }
+                            });
+                        };
+
+                        renderGallery();
+                    
+                    }    });
+
+                    } else {
+                        $(`#gallery-img-${bus_number}-preview`).text("No images available").addClass('hidden');
+                    }
+
+            
 
                 }
 
