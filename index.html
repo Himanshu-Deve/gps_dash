@@ -2228,7 +2228,8 @@
                     $(".listing-counts").addClass("hidden")
                 }
                 const filterVal = $("#verifyStatusFilter").val()==""?"0":$("#verifyStatusFilter").val();
-                const filteredData = data.filter(item => item.status == filterVal);
+                const filteredData = data.filter(item => item.status == null || item.status == filterVal);
+
                 console.log("Filtered Data:", filteredData);
                 $("#listing-count").text(filteredData.length);
 
