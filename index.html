@@ -575,7 +575,7 @@
                     <div class="relative">
                         <select id="verifyStatusFilter"
                             class="bg-white border border-gray-300 rounded-lg px-4 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-purple-500">
-                            <option value="">Not Verified</option>
+                            <option value="0">Not Verified</option>
                             <option value="2">Verified</option>   
                         </select>
                     </div>
@@ -619,6 +619,20 @@
     </div>
         <!-- Main Content -->
         <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+             <!-- Header Row -->
+            <div class="grid grid-cols-9 gap-4 bg-gray-100 text-gray-700 font-semibold text-sm px-4 py-3 border-b">
+                <div class="col-span-1">Bus Number</div>
+                <div class="col-span-1">Operator</div>
+                <div class="col-span-1 text-center">Task</div>
+                <div class="col-span-1 text-center">Status</div>
+                <div class="col-span-1 text-center">Assigned To</div>
+                <div class="col-span-1 text-center">Installation Date</div>
+                <div class="col-span-1 text-center">Repair Date</div>
+                <div class="col-span-1 text-center">Action</div>
+                <div class="col-span-1 text-center">Buttons</div>
+            </div>
+
+
             <div class="dashboard" id="dataContainer"></div>
             <div id="paginationControls" class="pagination-container">
                 <div class="pagination " id="pagination"></div>
@@ -1443,15 +1457,16 @@
                 if (state.isLoading) return;
                 state.isLoading = true;
                 utils.showLoader();
-
-                const busNumber = elements.busNumberFilter.val().trim();
+                 const busNumber = elements.busNumberFilter.val().trim();
+                 const verifyStatus = elements.verifyStatusFilter.val();
                 const operatorName = elements.operatorNameFilter.val().trim();
 
                 try {
                     const response = await apiService.get(config.endpoints.busList, {
                         page: page,
                         bus_number: busNumber,
-                        operator_name: operatorName
+                        operator_name: operatorName,
+                        verify_status: verifyStatus
                     });
                     state.allBusData = response.results;
                     elements.totalCount.text(response.count);
@@ -2224,7 +2239,7 @@
                     $(".listing-counts").removeClass("hidden")
                     $("#listing-count").text(data.length);
                 }else{
-                    $('.totdalCount').removeClass("hidden")
+                    $('.totalCount').removeClass("hidden")
                     $(".listing-counts").addClass("hidden")
                 }
                 const filterVal = $("#verifyStatusFilter").val()==""?"0":$("#verifyStatusFilter").val();
@@ -2236,8 +2251,6 @@
                 filteredData.forEach(item => {
                    const row = $(`
                 <tr class="flex flex-wrap md:table-row bg-white md:bg-transparent border border-gray-200 md:border-0 rounded-lg md:rounded-none mb-4 md:mb-0 shadow-sm md:shadow-none">
-
-
                             <td>${item.bus_number}</td>
                             <td >
                               <div class="flex items-center">
@@ -2742,8 +2755,8 @@
                 const busNumber = elements.busNumberFilter.val().trim();
                 const operatorName = elements.operatorNameFilter.val().trim();
                 const status = elements.statusFilter.val().trim();
-
-                busDataService.fetchBusData(busNumber, operatorName,status);
+                const verifyStatus = elements.verifyStatusFilter.val().trim();
+                busDataService.fetchBusData(busNumber, operatorName,status,verifyStatus);
             }, 300));
 
             elements.verifyStatusFilter.on("change", utils.debounce(() => {
@@ -2759,14 +2772,17 @@
             elements.busNumberFilter.on("input", utils.debounce(() => {
                 const busNumber = elements.busNumberFilter.val().trim();
                 const operatorName = elements.operatorNameFilter.val().trim();
-                busDataService.fetchBusData(busNumber, operatorName);
+                const verifyStatus = elements.verifyStatusFilter.val().trim();
+                busDataService.fetchBusData(busNumber, operatorName,"",verifyStatus);
             }, 300));
 
             // Filter by Operator Name
             elements.operatorNameFilter.on("input", utils.debounce(() => {
                 const operatorName = elements.operatorNameFilter.val().trim();
                 const busNumber = elements.busNumberFilter.val().trim();
-                busDataService.fetchBusData(busNumber, operatorName);
+                const verifyStatus = elements.verifyStatusFilter.val().trim();
+                busDataService.fetchBusData(busNumber, operatorName,"",verifyStatus);
+           
             }, 300));
 
             $('#technician_input').on('input', function () {
