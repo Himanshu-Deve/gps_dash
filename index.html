@@ -1114,6 +1114,10 @@
                                        <input type="checkbox" id="offbypass-${bus.bus_number}" class="w-5 h-5 rounded border-gray-300 text-purple-600 focus:ring-purple-500">
                                       <span>Ignition Off Bypass</span>
                                  </label>
+                            <label class="flex items-center space-x-2">
+                                    <input type="checkbox" id="onbuspass-${bus.bus_number}" class="w-5 h-5 rounded border-gray-300 text-purple-600 focus:ring-purple-500">
+                                    <span>BUS QC Bypass</span>
+                              </label>
                     </div>
                     <div class="hidden" id="repairing-${bus.bus_number}">
                     <div class="flex items-center space-x-4 my-5">
@@ -1503,6 +1507,7 @@
                         // console.log( item.by_pass_ignition_off);
                         $(`#offbypass-${bus_number}`).prop("checked", item.by_pass_ignition_off);
                         $(`#onbypass-${bus_number}`).prop("checked", item.by_pass_ignition_on);
+                        $(`#onbuspass-${bus_number}`).prop("checked", !item.bus_qc);
                         
                         $(document).on('change', `#onbypass-${bus_number}`, function () {
                         const bypassOn = $(this).is(':checked');
@@ -1515,6 +1520,11 @@
                     $(document).on('change', `#offbypass-${bus_number}`, function () {
                         const bypassOff = $(this).is(':checked');
                         apiService.patch(config.endpoints.busForm, item.gps_id, { by_pass_ignition_off: bypassOff },"/");
+                    });
+                       
+                    $(document).on('change', `#onbuspass-${bus_number}`, function () {
+                        const buspass = $(this).is(':checked');
+                        apiService.patch(config.endpoints.busForm, item.gps_id, { bus_qc: !buspass },"/");
                     });
                        
                         if (item.bus_quality_details[0]) {
